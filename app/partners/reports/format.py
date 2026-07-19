@@ -7,6 +7,7 @@ so we avoid needing a tz database in the slim image).
 
 from __future__ import annotations
 
+import html
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -139,4 +140,52 @@ def build_message(report: dict[str, Any], now_utc: datetime) -> str:
         lines.append("")
         lines.append(f"⏱ حذف‌شده به‌خاطر کهنگی (>۳ دقیقه): {names}")
 
+    return "\n".join(lines)
+
+
+def _metal_emoji(slug: str) -> str:
+    if slug.startswith(("gold", "coin")):
+        return "🥇"
+    if slug.startswith("silver"):
+        return "🥈"
+    if slug.startswith("copper"):
+        return "🥉"
+    return "•"
+
+
+def _esc(s: Any) -> str:
+    """HTML-escape a dynamic value for Telegram parse_mode=HTML."""
+    return html.escape(str(s), quote=False)
+
+
+def build_compact(report: dict[str, Any]) -> str:
+    """A short, header-less HTML block for one asset — safe to stack several
+    under one header without cluttering (Telegram parse_mode=HTML).
+
+    Three lines: metal title, Gerami's position, one-line market summary.
+    """
+    a = report["asset"]
+    slug = a.get("slug", "")
+    fa = _esc(a.get("title_fa", slug))
+    lines = [f"{_metal_emoji(slug)} <b>{fa}</b>"]
+
+    g = report.get("gerami")
+    m = report.get("market")
+    if g and g.get("present"):
+        vm = g["vs_market"]
+        arrow = "⬇️" if g["position"] == "cheaper" else "⬆️"
+        verdict = "ارزان‌تر" if g["position"] == "cheaper" else "گران‌تر"
+        lines.append(
+            f"گرمی: رتبه {fa_digits(str(g['rank']))}/{fa_digits(str(g['of']))} · "
+            f"<b>{fa_int(g['user_buy_price'])}</b> ت · {arrow} {verdict} از میانگین "
+            f"({fa_pct(vm['diff_pct_from_mean'])})"
+        )
+    else:
+        lines.append("گرمی: دادهٔ به‌روز ندارد ⏱")
+
+    if m and m.get("count"):
+        lines.append(
+            f"بازار: میانه {fa_int(m['median'])} · "
+            f"کف {_esc(m['min']['source_fa'])} | سقف {_esc(m['max']['source_fa'])}"
+        )
     return "\n".join(lines)

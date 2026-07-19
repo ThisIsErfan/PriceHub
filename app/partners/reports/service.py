@@ -43,13 +43,12 @@ async def platform_report(
     base = {"asset": {"slug": asset}, "currency": {"code": currency}, "params": params}
 
     if not rows:
-        empty = {**base, "as_of": None, "gerami": None, "market": None,
-                 "leaderboard": [], "message": None,
-                 "message_": "no data for this asset/currency"}
-        empty["message"] = fmt.build_message(
-            {"asset": {"slug": asset}, "gerami": None, "market": None, "leaderboard": []}, now
-        )
-        return empty
+        stub = {"asset": {"slug": asset}, "gerami": None, "market": None, "leaderboard": []}
+        return {**base, "as_of": None, "gerami": None, "market": None,
+                "leaderboard": [], "stamp_fa": fmt.tehran_stamp(now),
+                "message": fmt.build_message(stub, now),
+                "message_compact": fmt.build_compact(stub),
+                "note": "no data for this asset/currency"}
 
     first = rows[0]
     asset_meta = {
@@ -151,6 +150,8 @@ async def platform_report(
         "gerami": gerami,
         "market": market,
         "leaderboard": leaderboard,
+        "stamp_fa": fmt.tehran_stamp(now),
     }
     report["message"] = fmt.build_message(report, now)
+    report["message_compact"] = fmt.build_compact(report)
     return report
