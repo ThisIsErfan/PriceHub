@@ -122,12 +122,13 @@ _SUPPLIER_LATEST_SQL = text(
 )
 
 
-# Per-source "clean mid" over the fast price_latest mirror, for statistics.
+# Per-source clean bid/ask over the fast price_latest mirror, for statistics.
 # Replicates price_clean's normalization (canonical in the copilot DB) WITHOUT
 # scanning price_history: strip the "-1" sentinel (pos_price = price only when
-# > 0) and take mid = midpoint of bid/ask, each side falling back to the other
-# then to pos_price — so a one-sided or sentinel row still yields a usable mid.
-# `age_seconds` is computed against the DB clock (NOW()) to avoid app/DB skew.
+# > 0), then each side falls back to pos_price. So a single-rate source (price
+# only) contributes its price to BOTH bid and ask; a dual-rate source contributes
+# its real bid and ask; a "-1 + bid/ask" source contributes those. bid = خرید,
+# ask = فروش. `age_seconds` uses the DB clock (NOW()) to avoid app/DB skew.
 _STATS_ROWS_SQL = text(
     """
     SELECT s.slug      AS source_slug,
@@ -144,10 +145,8 @@ _STATS_ROWS_SQL = text(
            pl.ask,
            pl.crawled_at,
            EXTRACT(EPOCH FROM (NOW() - pl.crawled_at))::float8 AS age_seconds,
-           (
-             COALESCE(pl.bid, pl.ask, CASE WHEN pl.price > 0 THEN pl.price END)
-             + COALESCE(pl.ask, pl.bid, CASE WHEN pl.price > 0 THEN pl.price END)
-           ) / 2.0 AS mid
+           COALESCE(pl.bid, CASE WHEN pl.price > 0 THEN pl.price END) AS bid_clean,
+           COALESCE(pl.ask, CASE WHEN pl.price > 0 THEN pl.price END) AS ask_clean
     FROM   price_latest pl
     JOIN   sources    s ON s.id = pl.source_id
     JOIN   assets     a ON a.id = pl.asset_id
@@ -170,10 +169,11 @@ async def latest_clean_for_stats(
     currency: str,
     role: Optional[str] = None,
 ) -> list[dict[str, Any]]:
-    """One row per source for (asset, currency) with a clean `mid` + `age_seconds`.
+    """One row per source for (asset, currency) with clean `bid_clean`/`ask_clean`
+    + `age_seconds`.
 
-    Feeds the statistics endpoint. `mid` may be None when a source has no usable
-    quote (all of price/bid/ask non-positive) — the caller skips those.
+    Feeds the statistics endpoint. Either side may be None when a source has no
+    usable quote for it — the caller skips those per side.
     """
     result = await session.execute(
         _STATS_ROWS_SQL, {"asset": asset, "currency": currency, "role": role}

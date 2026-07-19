@@ -25,6 +25,39 @@ def _money(x: Any) -> Optional[str]:
     return str(Decimal(str(round(float(x), 2))))
 
 
+def _side_stats(vals: list[float]) -> tuple[Optional[dict[str, Any]], Optional[float], Optional[float]]:
+    """Summary stats for one side (bid or ask). Returns (block, mean, median);
+    block is None when there are no values. `mean_Nsigma` drops values beyond
+    ±Nσ of the mean, then re-averages (single-pass sigma clip)."""
+    if not vals:
+        return None, None, None
+    mean = statistics.fmean(vals)
+    median = statistics.median(vals)
+    std = statistics.pstdev(vals) if len(vals) > 1 else 0.0
+
+    def trimmed_mean(k: float):
+        if std == 0:
+            return mean, len(vals)
+        kept = [v for v in vals if abs(v - mean) <= k * std]
+        return (statistics.fmean(kept), len(kept)) if kept else (None, 0)
+
+    m2, c2 = trimmed_mean(2)
+    m3, c3 = trimmed_mean(3)
+    block = {
+        "sample_count": len(vals),
+        "min": _money(min(vals)),
+        "max": _money(max(vals)),
+        "mean": _money(mean),
+        "median": _money(median),
+        "stdev": _money(std),
+        "mean_2sigma": _money(m2),
+        "count_2sigma": c2,
+        "mean_3sigma": _money(m3),
+        "count_3sigma": c3,
+    }
+    return block, mean, median
+
+
 async def all_latest_prices(
     session: AsyncSession,
     *,
@@ -103,13 +136,14 @@ async def price_stats(
     max_age_seconds: int = 180,
     role: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Cross-source statistical summary for one (asset, currency).
+    """Cross-source statistical summary for one (asset, currency), computed
+    SEPARATELY for bid (خرید) and ask (فروش) — each over its own per-source data.
 
-    Computed over each source's clean `mid` (canonical comparable price, matching
-    the copilot consensus). Sources whose latest sample is older than
-    `max_age_seconds` (default 180s — we crawl every 120s, so >3min = stale) are
-    EXCLUDED, as are sources with no usable price. Gerami's own current quote is
-    always surfaced separately for reference.
+    Each source contributes a clean bid and ask (the "-1" sentinel is stripped;
+    a single-rate source's price counts as both sides). Sources whose latest
+    sample is older than `max_age_seconds` (default 180s — we crawl every 120s,
+    so >3min = stale) are EXCLUDED, as are sources with no usable quote. Gerami is
+    excluded from the stats and surfaced separately for reference.
     """
     rows = await price_data.latest_clean_for_stats(
         session, asset=asset, currency=currency, role=role
@@ -136,10 +170,19 @@ async def price_stats(
     }
     currency_meta = {"code": first["currency_code"], "title_fa": first["currency_title_fa"]}
 
-    # Split into the fresh, usable sample vs everything excluded (stale or no price).
+    # Gerami is handled separately and is deliberately NOT part of the market
+    # statistics — pull it out before building the sample.
+    grow = next((r for r in rows if r["source_slug"] == "gerami"), None)
+    sample_rows = [r for r in rows if r["source_slug"] != "gerami"]
+
+    def _side(r, col):  # usable clean value for a side, or None
+        v = r[col]
+        return float(v) if (v is not None and float(v) > 0) else None
+
+    # Split the (non-gerami) sample into fresh+usable vs excluded (stale/no quote).
     included, excluded = [], []
-    for r in rows:
-        usable = r["mid"] is not None and float(r["mid"]) > 0
+    for r in sample_rows:
+        usable = _side(r, "bid_clean") is not None or _side(r, "ask_clean") is not None
         fresh = r["age_seconds"] is not None and r["age_seconds"] <= max_age_seconds
         if usable and fresh:
             included.append(r)
@@ -151,53 +194,36 @@ async def price_stats(
                 "reason": reason,
             })
 
-    vals = [float(r["mid"]) for r in included]
-    stats = None
-    mean = median = None
-    if vals:
-        mean = statistics.fmean(vals)
-        median = statistics.median(vals)
-        std = statistics.pstdev(vals) if len(vals) > 1 else 0.0
-
-        def trimmed_mean(k: float):
-            # Keep values within k standard deviations of the mean, then re-average.
-            if std == 0:
-                return mean, len(vals)
-            kept = [v for v in vals if abs(v - mean) <= k * std]
-            return (statistics.fmean(kept), len(kept)) if kept else (None, 0)
-
-        m2, c2 = trimmed_mean(2)
-        m3, c3 = trimmed_mean(3)
-        stats = {
-            "min": _money(min(vals)),
-            "max": _money(max(vals)),
-            "mean": _money(mean),
-            "median": _money(median),
-            "stdev": _money(std),
-            "mean_2sigma": _money(m2),
-            "count_2sigma": c2,
-            "mean_3sigma": _money(m3),
-            "count_3sigma": c3,
-        }
+    # Separate stats per side, each over its own per-source values.
+    bid_vals = [v for r in included if (v := _side(r, "bid_clean")) is not None]
+    ask_vals = [v for r in included if (v := _side(r, "ask_clean")) is not None]
+    bid_block, bid_mean, bid_median = _side_stats(bid_vals)
+    ask_block, ask_mean, ask_median = _side_stats(ask_vals)
+    stats = {"bid": bid_block, "ask": ask_block}
 
     included_slugs = {r["source_slug"] for r in included}
 
-    # Gerami's own current quote — always shown, even if it was excluded above.
+    # Gerami's own current quote — shown separately, NEVER counted in the stats.
+    # Its bid/ask are compared to the market's bid/ask stats respectively.
     gerami = None
-    grow = next((r for r in rows if r["source_slug"] == "gerami"), None)
     if grow is not None:
-        gmid = float(grow["mid"]) if grow["mid"] is not None else None
-        in_stats = "gerami" in included_slugs
+        gprice = _side(grow, "price") if "price" in grow else None
+        gbid = _side(grow, "bid_clean")
+        gask = _side(grow, "ask_clean")
         gerami = {
-            "price": _money(grow["price"]) if (grow["price"] is not None and float(grow["price"]) > 0) else None,
+            "price": _money(gprice),
             "bid": _money(grow["bid"]),
             "ask": _money(grow["ask"]),
-            "mid": _money(gmid),
             "crawled_at": grow["crawled_at"],
             "age_seconds": int(round(grow["age_seconds"])) if grow["age_seconds"] is not None else None,
-            "included_in_stats": in_stats,
-            "diff_from_median": _money(gmid - median) if (median is not None and gmid is not None) else None,
-            "diff_from_mean": _money(gmid - mean) if (mean is not None and gmid is not None) else None,
+            "bid_vs_market": {
+                "diff_from_median": _money(gbid - bid_median) if (bid_median is not None and gbid is not None) else None,
+                "diff_from_mean": _money(gbid - bid_mean) if (bid_mean is not None and gbid is not None) else None,
+            },
+            "ask_vs_market": {
+                "diff_from_median": _money(gask - ask_median) if (ask_median is not None and gask is not None) else None,
+                "diff_from_mean": _money(gask - ask_mean) if (ask_mean is not None and gask is not None) else None,
+            },
         }
 
     as_of = max((r["crawled_at"] for r in included), default=None) or max(r["crawled_at"] for r in rows)
@@ -208,7 +234,7 @@ async def price_stats(
         "as_of": as_of,
         "params": params,
         "sample": {
-            "total_sources": len(rows),
+            "total_sources": len(sample_rows),
             "included": len(included),
             "excluded": len(excluded),
             "included_sources": sorted(included_slugs),
