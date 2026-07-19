@@ -17,6 +17,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api.health import router as health_router
 from app.core.config import settings
 from app.core.redis import close_redis
 from app.db.session import SessionLocal
@@ -40,6 +41,10 @@ if settings.cors_origins:
         allow_methods=["GET"],
         allow_headers=["X-API-Key", "Content-Type"],
     )
+
+# Public health/readiness (no key) — shown in the OpenAPI docs so consumers can
+# probe the service before calling data endpoints.
+app.include_router(health_router)
 
 # Mount each partner's router under its own /v1/<slug> namespace.
 for mount_path, partner_router in PARTNER_ROUTERS:
@@ -82,14 +87,11 @@ async def root():
             "version": app.version,
             "partners": [slug for slug, _ in PARTNER_ROUTERS],
             "docs": "/docs",
+            "health": "/health",
+            "readiness": "/health/ready",
         },
         message="PriceHub partner API",
     )
-
-
-@app.get("/health", include_in_schema=False)
-async def health():
-    return ok({"status": "healthy"})
 
 
 # --- Error envelope handlers -------------------------------------------------

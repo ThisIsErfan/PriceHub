@@ -12,6 +12,7 @@ Understand the system before changing it.
 
 ### api/
 Everything a consumer of the API needs.
+- [health.md](api/health.md) — public liveness (`/health`) & readiness (`/health/ready`) checks — probe before calling.
 - [authentication.md](api/authentication.md) — API keys, the `X-API-Key` header, scopes, tenant isolation.
 - [responses.md](api/responses.md) — the response envelope and example payloads per endpoint.
 - [rate-limiting.md](api/rate-limiting.md) — the per-second / per-minute caps and the `429` behaviour.
@@ -31,6 +32,7 @@ Everything a consumer of the API needs.
 ## Conventions used across the docs
 
 - Base URL in production: `https://api.gerami.online`
-- All endpoints are **GET** and **versioned** under `/v1/<partner>/…`.
+- All **data** endpoints are **GET** and **versioned** under `/v1/<partner>/…`.
+- Public, unauthenticated: `GET /health` and `GET /health/ready` — see [api/health.md](api/health.md).
 - Every response uses the envelope `{success, message, responseCode, data}`.
 - Auth is a single header: `X-API-Key: ph_live_…`.
