@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Env / secrets — never commit real values (only *.example is tracked)
+.env
+.env.*
+!.env.*.example
+deploy/.env.pricehub
+deploy/*.env
+
+# Local mint output (may contain plaintext keys)
+*.key.txt
+minted-keys/
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

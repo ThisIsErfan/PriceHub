@@ -1,0 +1,89 @@
+# PriceHub — Partner API (PRODUCTION)
+#
+# Two services:
+#   pricehub        the FastAPI partner API (GHCR image)
+#   pricehub-redis  rate-limit windows + ephemeral counters (internal only)
+#
+# Joins the crawlers' external `pricing-net` (created by pricing-copilot's
+# compose.crawlers.prod.yml) and reaches Postgres by service name
+# (postgres-crawlers). Deploy the crawler stack FIRST so the network + DB exist.
+#
+# Public entry: bind pricehub to 127.0.0.1:8100 and point your TLS reverse proxy
+# (the same one serving copilot.gerami.online) at it for api.gerami.online.
+#
+# Images are parameterized via the server .env:
+#   IMAGE_PREFIX=ghcr.io/thisiserfan/pricehub
+#   IMAGE_TAG=latest            # or git-<sha> to pin a build
+
+name: pricehub
+
+networks:
+  pricing-net:
+    external: true
+    name: pricing-net
+
+volumes:
+  pricehub_redis:
+
+services:
+  pricehub:
+    image: ${IMAGE_PREFIX}:${IMAGE_TAG:-latest}
+    container_name: pricehub-api
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    environment:
+      # DB — the SELECT-only partner role on the shared crawler DB.
+      DB_HOST: postgres-crawlers          # service name on pricing-net
+      DB_PORT: "5432"
+      DB_NAME: ${CRAWLER_DB_NAME:-pricing_db}
+      PARTNER_DB_USER: ${PARTNER_DB_USER}
+      PARTNER_DB_PASSWORD: ${PARTNER_DB_PASSWORD}
+      # Redis — internal service on pricing-net.
+      PRICEHUB_REDIS_HOST: pricehub-redis
+      PRICEHUB_REDIS_PORT: "6379"
+      PRICEHUB_REDIS_PASSWORD: ${PRICEHUB_REDIS_PASSWORD}
+      PRICEHUB_REDIS_DB: "0"
+      # App
+      APP_ENV: production
+      PARTNER_CORS_ORIGINS: ${PARTNER_CORS_ORIGINS:-}
+      DEFAULT_RATE_LIMIT_PER_SEC: ${DEFAULT_RATE_LIMIT_PER_SEC:-5}
+      DEFAULT_RATE_LIMIT_PER_MIN: ${DEFAULT_RATE_LIMIT_PER_MIN:-120}
+    # Bind to localhost — front your TLS reverse proxy at :8100 for api.gerami.online.
+    ports:
+      - "127.0.0.1:8100:8100"
+    networks:
+      - pricing-net
+    depends_on:
+      pricehub-redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  pricehub-redis:
+    image: redis:7-alpine
+    container_name: pricehub-redis
+    # Password-protected; no host port (internal to pricing-net only). Data is
+    # ephemeral rate-limit counters, but a small volume avoids a cold start.
+    command:
+      - redis-server
+      - --requirepass
+      - ${PRICEHUB_REDIS_PASSWORD}
+      - --maxmemory
+      - "128mb"
+      - --maxmemory-policy
+      - allkeys-lru
+      - --save
+      - ""
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    volumes:
+      - pricehub_redis:/data
+    networks:
+      - pricing-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${PRICEHUB_REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped

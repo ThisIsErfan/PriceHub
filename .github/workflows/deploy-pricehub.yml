@@ -1,0 +1,78 @@
+name: Deploy PriceHub (prod)
+
+# Manual deploy of the PriceHub partner API + its Redis. Joins the crawlers'
+# external pricing-net, so the pricing-copilot crawler stack must already be up
+# (it creates the network + DB). Deploys to ~/pricehub on the VPS.
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (latest, or git-<sha> to pin a build)"
+        required: false
+        default: "latest"
+
+concurrency:
+  group: deploy-pricehub
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy PriceHub on VPS
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image prefix (lowercase owner)
+        id: img
+        run: echo "prefix=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/pricehub" >> "$GITHUB_OUTPUT"
+
+      - name: Upload compose file to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          source: "deploy/compose.pricehub.prod.yml"
+          target: "pricehub"
+          strip_components: 1
+
+      - name: Write .env, login to GHCR, pull & up
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          password: ${{ secrets.VPS_SSH_PASSWORD }}
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="$HOME/pricehub"
+            mkdir -p "$DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
+
+            # PriceHub joins pricing-net (owned by the crawler stack). Create it
+            # if the crawler stack hasn't run yet so this deploy doesn't hard-fail.
+            docker network inspect pricing-net >/dev/null 2>&1 || docker network create pricing-net
+
+            rm -rf .env
+            cat > .env << 'ENVVARS'
+            IMAGE_PREFIX=${{ steps.img.outputs.prefix }}
+            IMAGE_TAG=${{ github.event.inputs.image_tag }}
+            CRAWLER_DB_NAME=pricing_db
+            PARTNER_DB_USER=${{ secrets.PARTNER_DB_USER }}
+            PARTNER_DB_PASSWORD=${{ secrets.PARTNER_DB_PASSWORD }}
+            PRICEHUB_REDIS_PASSWORD=${{ secrets.PRICEHUB_REDIS_PASSWORD }}
+            PARTNER_CORS_ORIGINS=${{ vars.PARTNER_CORS_ORIGINS }}
+            DEFAULT_RATE_LIMIT_PER_SEC=${{ vars.DEFAULT_RATE_LIMIT_PER_SEC || '5' }}
+            DEFAULT_RATE_LIMIT_PER_MIN=${{ vars.DEFAULT_RATE_LIMIT_PER_MIN || '120' }}
+            ENVVARS
+            echo "✅ .env written"
+
+            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+            COMPOSE="docker compose -f compose.pricehub.prod.yml"
+            $COMPOSE pull
+            $COMPOSE up -d --remove-orphans
+            $COMPOSE ps
+            echo "✅ PriceHub deploy complete."
