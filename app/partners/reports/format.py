@@ -224,9 +224,10 @@ def build_table(report: dict[str, Any]) -> str:
     out = [f"{_metal_dot(slug)} <b>{fa}</b>", f"🕓 زمان: {stamp}", ""]
     # Summary is from the USER's buy side (what the customer pays to buy = the
     # platform's sell/ask). The leaderboard is already sorted by it, high→low.
+    # 🔺 = ceiling, 🔻 = floor (the emoji says it — no سقف/کف label needed).
     if lb:
         top, bottom = lb[0], lb[-1]
-        out.append(f"🔺 سقف: {_esc(top['source_fa'])} — {fa_int(top['user_buy_price'])}")
+        out.append(f"🔺 {_esc(top['source_fa'])} — {fa_int(top['user_buy_price'])}")
         if g and g.get("present"):
             out.append(
                 f"🔸 گرمی: {fa_int(g['user_buy_price'])} · "
@@ -234,31 +235,29 @@ def build_table(report: dict[str, Any]) -> str:
             )
         else:
             out.append("🔸 گرمی: دادهٔ به‌روز ندارد")
-        out.append(f"🔻 کف: {_esc(bottom['source_fa'])} — {fa_int(bottom['user_buy_price'])}")
+        out.append(f"🔻 {_esc(bottom['source_fa'])} — {fa_int(bottom['user_buy_price'])}")
     else:
         out.append("دادهٔ به‌روزی برای این دارایی نیست.")
 
-    # ── Monospace table (Latin, aligned): Market | Buy | Sell | Spread ──
+    # ── Monospace table (Latin, aligned): Market | Buy | Sell ──
     # From the USER's side: Buy = user pays to buy (ask), Sell = user gets selling
-    # (bid), Spread = Buy − Sell. Sorted by Buy Price, high→low.
+    # (bid). Sorted by Buy Price, high→low.
     names = [(r["source_en"] or r["source"])[:14] for r in lb]
     buys = [_num_en(r["user_buy_price"]) for r in lb]
     sells = [_num_en(r["user_sell_price"]) for r in lb]
-    spreads = [_num_en(r["spread"]) for r in lb]
     wn = max([len("Market")] + [len(x) for x in names]) if names else len("Market")
     wb = max([len("Buy Price")] + [len(x) for x in buys]) if buys else len("Buy Price")
     ws = max([len("Sell Price")] + [len(x) for x in sells]) if sells else len("Sell Price")
-    wp = max([len("Spread")] + [len(x) for x in spreads]) if spreads else len("Spread")
 
-    def box(name: str, buy: str, sell: str, spread: str) -> str:
-        return f"| {name:<{wn}} | {buy:>{wb}} | {sell:>{ws}} | {spread:>{wp}} |"
+    def box(name: str, buy: str, sell: str) -> str:
+        return f"| {name:<{wn}} | {buy:>{wb}} | {sell:>{ws}} |"
 
-    sep = "|" + "-" * (wn + 2) + "|" + "-" * (wb + 2) + "|" + "-" * (ws + 2) + "|" + "-" * (wp + 2) + "|"
+    sep = "|" + "-" * (wn + 2) + "|" + "-" * (wb + 2) + "|" + "-" * (ws + 2) + "|"
     # 3-cell left margin: "🔸 " (emoji≈2 + space) for Gerami, three spaces otherwise,
     # so the table box lines up across every row while Gerami stays marked.
-    table = ["   " + box("Market", "Buy Price", "Sell Price", "Spread"), "   " + sep]
-    for r, name, buy, sell, spread in zip(lb, names, buys, sells, spreads):
+    table = ["   " + box("Market", "Buy Price", "Sell Price"), "   " + sep]
+    for r, name, buy, sell in zip(lb, names, buys, sells):
         mark = "🔸 " if r["is_gerami"] else "   "
-        table.append(mark + box(name, buy, sell, spread))
+        table.append(mark + box(name, buy, sell))
 
     return "\n".join(out) + "\n\n<pre>\n" + _esc("\n".join(table)) + "\n</pre>"
