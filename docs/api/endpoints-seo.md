@@ -2,71 +2,20 @@
 
 Base: `https://api.gerami.online/v1/seo`
 Auth: `X-API-Key` for a key on partner `seo`.
-All GET. See [responses.md](responses.md) for the envelope and full examples.
 
-Served by the code module [`app/partners/seo/`](../../app/partners/seo/).
+## Status: no endpoints yet
 
----
+The SEO surface is intentionally **empty for now** — its endpoints will be
+defined later once the requirements are set. The `seo` partner, its API key, and
+the `/v1/seo` namespace already exist, so adding routes later is purely additive.
 
-## GET /v1/seo/prices/latest
+Any request under `/v1/seo/*` currently returns **404** (with a valid `seo` key)
+or **401/403** first if the key is missing or belongs to another partner.
 
-Latest **platform** price for the SEO featured assets (gold 18k/24k/melted/ounce,
-silver, coins). Supplier quotes are excluded.
+## Adding SEO endpoints later
 
-**Scope:** `prices:read`
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `asset` | string | – | narrow to a single asset slug (e.g. `gold-18k`) |
-
-```bash
-curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/seo/prices/latest?asset=gold-18k"
-```
-
-`data`: `{ items: [ {asset, asset_title_fa, asset_title_en, unit, source, currency, price, crawled_at} ], count, generated_at }`
-
----
-
-## GET /v1/seo/assets
-
-The asset catalog you can reference (slugs, titles, units, purity).
-
-**Scope:** `prices:read`
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `type` | string | – | filter by type: `gold`, `silver`, `coin`, `currency`, `crypto`, … |
-
-```bash
-curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/seo/assets?type=coin"
-```
-
-`data`: `{ items: [ {slug, symbol, title_en, title_fa, type, unit, purity} ] }`
-
----
-
-## GET /v1/seo/news
-
-Recent metals news headlines (title, summary, link, publisher, image,
-published_at). Full article bodies are not exposed on this feed.
-
-**Scope:** `news:read`
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `symbol` | string | – | filter by metal: `gold`, `silver`, `copper` |
-| `limit` | int (1–50) | 20 | max articles |
-
-```bash
-curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/seo/news?symbol=gold&limit=10"
-```
-
-`data`: `{ items: [ {title, summary, url, publisher, image_url, published_at, source} ], count }`
-
----
-
-## Featured asset list
-
-The `prices/latest` feed is curated to the assets the SEO team publishes about,
-defined in [`app/partners/seo/service.py`](../../app/partners/seo/service.py)
-(`SEO_FEATURED_ASSETS`). To add/remove one, edit that list.
+1. Define routes in [`app/partners/seo/router.py`](../../app/partners/seo/router.py),
+   each behind `require_partner("seo", scope=…)`.
+2. A reference implementation (featured prices, news, assets) is preserved in
+   [`app/partners/seo/service.py`](../../app/partners/seo/service.py) to draw from.
+3. Update this doc with the concrete endpoints and sample responses.

@@ -78,28 +78,6 @@ curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/technical/suppliers/late
 
 ---
 
-## GET /v1/technical/sources
-
-The source catalog (data providers).
-
-**Scope:** `reference:read`
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `role` | string | – | filter by role: `platform`, `reference`, `supplier` |
-
-`data`: `{ items: [ {slug, title_en, title_fa, type, role, url} ] }`
-
----
-
-## GET /v1/technical/assets
-
-The asset catalog.
-
-**Scope:** `reference:read`
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `type` | string | – | filter by asset type |
-
-`data`: `{ items: [ {slug, symbol, title_en, title_fa, type, unit, purity} ] }`
+> **Note:** only the two endpoints above are exposed. Catalog endpoints
+> (`/sources`, `/assets`) are not part of the technical surface for now; the
+> `reference:read` scope is unused until/unless they are added back.

@@ -1,19 +1,18 @@
 # Partner module: `seo`
 
 Serves the **SEO team**. Mounted at `/v1/seo`. Keys for this partner can only
-call these routes (a `technical` key gets `403` here).
+call this namespace (a `technical` key gets `403` here).
 
-## Endpoints
+## Status: no endpoints yet
 
-| Method | Path | Scope | Returns |
-|--------|------|-------|---------|
-| GET | `/v1/seo/prices/latest` | `prices:read` | Latest platform price for the featured assets (`?asset=` to narrow) |
-| GET | `/v1/seo/assets` | `prices:read` | Asset catalog (`?type=gold\|silver\|coin\|…`) |
-| GET | `/v1/seo/news` | `news:read` | Recent metals news headlines (`?symbol=gold\|silver\|copper`, `?limit=1..50`) |
+The SEO surface is intentionally **empty for now** — routes will be defined later.
+[`router.py`](router.py) has no routes, so `/v1/seo/*` returns `404` until they
+are added.
 
-Featured assets are curated in [`service.py`](service.py) (`SEO_FEATURED_ASSETS`)
-so the SEO feed stays focused on what they publish. Supplier quotes are excluded
-from this feed by design (platform/reference prices only).
+A reference implementation (featured prices, news, assets catalog) is preserved
+in [`service.py`](service.py) to draw from when wiring endpoints up:
+`SEO_FEATURED_ASSETS` curates the assets the SEO team publishes about, and
+supplier quotes are excluded (platform/reference prices only).
 
 ## Add / change SEO endpoints
 

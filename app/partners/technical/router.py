@@ -13,14 +13,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import require_partner
 from app.db.session import get_session
 from app.partners.technical import service
-from app.shared.data import prices as price_data
 from app.shared.schemas import ok
 
 SLUG = "technical"
 router = APIRouter(tags=["technical"])
 
 _auth_prices = Depends(require_partner(SLUG, scope="prices:read"))
-_auth_ref = Depends(require_partner(SLUG, scope="reference:read"))
 
 
 @router.get(
@@ -51,21 +49,3 @@ async def suppliers_latest(
     session: AsyncSession = Depends(get_session),
 ):
     return ok(await service.supplier_latest(session, source=source, asset=asset))
-
-
-@router.get("/sources", summary="Catalog of price sources")
-async def sources(
-    _ctx=_auth_ref,
-    role: Optional[str] = Query(None, description="Filter by role: platform|reference|supplier"),
-    session: AsyncSession = Depends(get_session),
-):
-    return ok({"items": await price_data.list_sources(session, role=role)})
-
-
-@router.get("/assets", summary="Catalog of assets")
-async def assets(
-    _ctx=_auth_ref,
-    type: Optional[str] = Query(None, description="Filter by asset type"),
-    session: AsyncSession = Depends(get_session),
-):
-    return ok({"items": await price_data.list_assets(session, type=type)})

@@ -7,13 +7,12 @@ Keys for this partner can only call these routes (an `seo` key gets `403` here).
 
 | Method | Path | Scope | Returns |
 |--------|------|-------|---------|
-| GET | `/v1/technical/prices/latest` | `prices:read` | Latest quote per source/asset/currency, **with bid/ask** (`?source=`, `?asset=`, `?currency=`, `?type=`) |
+| GET | `/v1/technical/prices/latest` | `prices:read` | Latest quote per source/asset/currency, **with bid/ask** (`?source=`, `?asset=`, `?currency=`, `?type=`, `?assets=`) |
 | GET | `/v1/technical/suppliers/latest` | `prices:read` | Latest supplier buy/sell/mid quotes (`?source=`, `?asset=`) |
-| GET | `/v1/technical/sources` | `reference:read` | Source catalog (`?role=platform\|reference\|supplier`) |
-| GET | `/v1/technical/assets` | `reference:read` | Asset catalog (`?type=`) |
 
-This feed intentionally returns fuller rows than `seo` (every source, bid/ask,
-supplier quotes) for machine integration.
+Only these two endpoints are exposed for now. The response shape mirrors the
+copilot `GET /api/v1/prices/latest` (platform-compare) — nested
+source/asset/currency refs + `is_single_rate` + bid/ask.
 
 ## Add / change technical endpoints
 
