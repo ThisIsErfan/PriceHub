@@ -99,17 +99,20 @@ All use Jalali date, Tehran time (UTC+3:30), Persian digits, and `parse_mode=HTM
 <pre>
    | Market     |  Buy Price | Sell Price |  Spread |
    |------------|------------|------------|---------|
-   | Goldika    | 18,700,000 | 18,972,363 | 272,363 |
-   | Technogold | 18,694,730 | 18,930,180 | 235,450 |
-🔸 | Gerami     | 18,701,243 | 18,777,477 |  76,234 |
+   | Goldika    | 18,972,363 | 18,700,000 | 272,363 |
+   | Technogold | 18,930,180 | 18,694,730 | 235,450 |
+🔸 | Gerami     | 18,777,477 | 18,701,243 |  76,234 |
    | MilliGold  | 18,738,000 | 18,738,000 |       0 |
    | ZarPay     | 18,133,331 | 18,133,331 |       0 |
 </pre>
 ```
 
-Buy Price = platform buy (خرید = user sell), Sell Price = platform sell
-(فروش = user buy), Spread = Sell − Buy. The 🔸 marker sits to the LEFT of the box
-so the columns stay aligned (emojis are ~2 monospace cells wide).
+Columns are from the **user's** side: **Buy Price** = what the customer pays to
+buy (= the platform's sell/ask, فروش), **Sell Price** = what the customer gets
+selling (= the platform's buy/bid, خرید), **Spread** = Buy − Sell. Sorted by Buy
+Price high→low; the summary ceiling/floor are the same user-buy price. The 🔸
+marker sits to the LEFT of the box so the columns stay aligned (emojis are ~2
+monospace cells wide).
 
 Field notes:
 - **user-buy price** = the source's clean ask/فروش (the `-1` sentinel stripped; a

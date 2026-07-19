@@ -222,9 +222,11 @@ def build_table(report: dict[str, Any]) -> str:
 
     # ── Header + ceiling / Gerami / floor summary ──
     out = [f"{_metal_dot(slug)} <b>{fa}</b>", f"🕓 زمان: {stamp}", ""]
+    # Summary is from the USER's buy side (what the customer pays to buy = the
+    # platform's sell/ask). The leaderboard is already sorted by it, high→low.
     if lb:
         top, bottom = lb[0], lb[-1]
-        out.append(f"🔺 سقف: {_esc(top['source_fa'])} — {fa_int(top['sell_price'])}")
+        out.append(f"🔺 سقف: {_esc(top['source_fa'])} — {fa_int(top['user_buy_price'])}")
         if g and g.get("present"):
             out.append(
                 f"🔸 گرمی: {fa_int(g['user_buy_price'])} · "
@@ -232,14 +234,16 @@ def build_table(report: dict[str, Any]) -> str:
             )
         else:
             out.append("🔸 گرمی: دادهٔ به‌روز ندارد")
-        out.append(f"🔻 کف: {_esc(bottom['source_fa'])} — {fa_int(bottom['sell_price'])}")
+        out.append(f"🔻 کف: {_esc(bottom['source_fa'])} — {fa_int(bottom['user_buy_price'])}")
     else:
         out.append("دادهٔ به‌روزی برای این دارایی نیست.")
 
     # ── Monospace table (Latin, aligned): Market | Buy | Sell | Spread ──
+    # From the USER's side: Buy = user pays to buy (ask), Sell = user gets selling
+    # (bid), Spread = Buy − Sell. Sorted by Buy Price, high→low.
     names = [(r["source_en"] or r["source"])[:14] for r in lb]
-    buys = [_num_en(r["buy_price"]) for r in lb]
-    sells = [_num_en(r["sell_price"]) for r in lb]
+    buys = [_num_en(r["user_buy_price"]) for r in lb]
+    sells = [_num_en(r["user_sell_price"]) for r in lb]
     spreads = [_num_en(r["spread"]) for r in lb]
     wn = max([len("Market")] + [len(x) for x in names]) if names else len("Market")
     wb = max([len("Buy Price")] + [len(x) for x in buys]) if buys else len("Buy Price")
