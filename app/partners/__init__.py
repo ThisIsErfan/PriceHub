@@ -13,6 +13,7 @@ Each partner is a self-contained code module under this package that exposes a
 change, and nothing is ever served by accident.
 """
 
+from app.partners.reports.router import router as reports_router
 from app.partners.seo.router import router as seo_router
 from app.partners.technical.router import router as technical_router
 
@@ -20,4 +21,5 @@ from app.partners.technical.router import router as technical_router
 PARTNER_ROUTERS = [
     ("seo", seo_router),
     ("technical", technical_router),
+    ("reports", reports_router),
 ]
