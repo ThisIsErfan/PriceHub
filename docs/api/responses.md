@@ -54,6 +54,9 @@ rounding).
 
 ### Example — `GET /v1/technical/prices/latest`
 
+Same `data` shape as the copilot `GET /api/v1/prices/latest` (platform compare):
+nested `source`/`asset`/`currency` + `is_single_rate`.
+
 ```json
 {
   "success": true,
@@ -62,17 +65,14 @@ rounding).
   "data": {
     "items": [
       {
-        "source": "tgju",
-        "source_role": "reference",
-        "asset": "gold-ounce",
-        "asset_symbol": "GOLD_OUNCE",
-        "asset_type": "gold",
-        "unit": "per_ounce",
-        "currency": "USD",
-        "price": "2405.60000000",
-        "bid": "2405.10000000",
-        "ask": "2406.10000000",
-        "crawled_at": "2026-07-19T08:41:05.000000+00:00"
+        "source":   { "slug": "gerami", "title_en": "Gerami", "title_fa": "گرمی" },
+        "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
+        "currency": { "code": "IRT", "title_fa": "تومان" },
+        "is_single_rate": false,
+        "price": "3825000.00000000",
+        "bid": "3820000.00000000",
+        "ask": "3830000.00000000",
+        "crawled_at": "2026-07-19T08:41:12+00:00"
       }
     ],
     "count": 1,

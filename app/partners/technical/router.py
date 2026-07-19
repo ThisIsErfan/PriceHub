@@ -23,18 +23,22 @@ _auth_prices = Depends(require_partner(SLUG, scope="prices:read"))
 _auth_ref = Depends(require_partner(SLUG, scope="reference:read"))
 
 
-@router.get("/prices/latest", summary="Latest quote per source/asset/currency (raw, with bid/ask)")
+@router.get(
+    "/prices/latest",
+    summary="Latest quote per source/asset/currency — same shape as copilot's platform-compare",
+)
 async def prices_latest(
     _ctx=_auth_prices,
-    source: Optional[str] = Query(None, description="Filter by source slug"),
-    asset: Optional[str] = Query(None, description="Filter by asset slug"),
-    currency: Optional[str] = Query(None, description="Filter by currency code, e.g. IRR"),
+    source: Optional[str] = Query(None, description="Filter by source (platform) slug"),
+    asset: Optional[str] = Query(None, description="Filter by asset slug, e.g. gold-18k"),
+    currency: Optional[str] = Query(None, description="Filter by currency code, e.g. IRT, IRR"),
     type: Optional[str] = Query(None, description="Filter by asset type"),
+    assets: Optional[str] = Query(None, description="Filter by a comma-separated list of asset slugs"),
     session: AsyncSession = Depends(get_session),
 ):
     return ok(
         await service.all_latest_prices(
-            session, source=source, asset=asset, currency=currency, type=type
+            session, source=source, asset=asset, currency=currency, type=type, assets=assets
         )
     )
 

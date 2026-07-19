@@ -21,6 +21,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # --- Latest platform/reference prices ---------------------------------------
 
+# Superset of the copilot backend's prices/latest query: same source_assets
+# LEFT JOIN + is_single_rate (so the technical feed matches the copilot
+# "platform compare" section byte-for-byte), PLUS s.role and the comma-separated
+# `assets` filter. SEO reads a subset of these columns; technical reads the lot.
 _LATEST_SQL = text(
     """
     SELECT s.slug      AS source_slug,
@@ -35,6 +39,7 @@ _LATEST_SQL = text(
            a.unit      AS asset_unit,
            c.code      AS currency_code,
            c.title_fa  AS currency_title_fa,
+           sa.is_single_rate AS is_single_rate,
            pl.price,
            pl.bid,
            pl.ask,
@@ -43,6 +48,10 @@ _LATEST_SQL = text(
     JOIN   sources    s ON s.id = pl.source_id
     JOIN   assets     a ON a.id = pl.asset_id
     JOIN   currencies c ON c.id = pl.currency_id
+    LEFT JOIN source_assets sa
+           ON sa.source_id = pl.source_id
+          AND sa.asset_id  = pl.asset_id
+          AND sa.deleted   = FALSE
     WHERE  s.deleted = FALSE
       AND  a.deleted = FALSE
       AND  c.deleted = FALSE
@@ -50,6 +59,8 @@ _LATEST_SQL = text(
       AND  (CAST(:asset    AS text) IS NULL OR a.slug = :asset)
       AND  (CAST(:currency AS text) IS NULL OR c.code = :currency)
       AND  (CAST(:type     AS text) IS NULL OR a.type = :type)
+      AND  (CAST(:assets   AS text) IS NULL
+            OR a.slug = ANY(string_to_array(:assets, ',')))
     ORDER  BY s.slug, a.slug, c.code
     """
 )
@@ -62,11 +73,21 @@ async def latest_prices(
     asset: Optional[str] = None,
     currency: Optional[str] = None,
     type: Optional[str] = None,
+    assets: Optional[str] = None,
 ) -> list[dict[str, Any]]:
-    """Latest quote per (source, asset, currency). All filters optional."""
+    """Latest quote per (source, asset, currency). All filters optional.
+
+    `assets` is a comma-separated list of asset slugs (matches copilot's param).
+    """
     result = await session.execute(
         _LATEST_SQL,
-        {"source": source, "asset": asset, "currency": currency, "type": type},
+        {
+            "source": source,
+            "asset": asset,
+            "currency": currency,
+            "type": type,
+            "assets": assets,
+        },
     )
     return [dict(r) for r in result.mappings().all()]
 

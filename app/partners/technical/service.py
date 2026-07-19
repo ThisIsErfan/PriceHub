@@ -22,20 +22,33 @@ async def all_latest_prices(
     asset: Optional[str] = None,
     currency: Optional[str] = None,
     type: Optional[str] = None,
+    assets: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Latest quote for every (source, asset, currency) with bid/ask, filterable."""
+    """Latest quote per (source, asset, currency) — same shape as the copilot
+    `GET /api/v1/prices/latest` (the "platform compare" section): nested
+    source/asset/currency refs, `is_single_rate`, and price/bid/ask.
+    """
     rows = await price_data.latest_prices(
-        session, source=source, asset=asset, currency=currency, type=type
+        session, source=source, asset=asset, currency=currency, type=type, assets=assets
     )
     items = [
         {
-            "source": r["source_slug"],
-            "source_role": r["source_role"],
-            "asset": r["asset_slug"],
-            "asset_symbol": r["asset_symbol"],
-            "asset_type": r["asset_type"],
-            "unit": r["asset_unit"],
-            "currency": r["currency_code"],
+            "source": {
+                "slug": r["source_slug"],
+                "title_en": r["source_title_en"],
+                "title_fa": r["source_title_fa"],
+            },
+            "asset": {
+                "slug": r["asset_slug"],
+                "symbol": r["asset_symbol"],
+                "title_fa": r["asset_title_fa"],
+                "unit": r["asset_unit"],
+            },
+            "currency": {
+                "code": r["currency_code"],
+                "title_fa": r["currency_title_fa"],
+            },
+            "is_single_rate": r["is_single_rate"],
             "price": r["price"],
             "bid": r["bid"],
             "ask": r["ask"],
