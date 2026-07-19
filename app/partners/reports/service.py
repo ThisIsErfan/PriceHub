@@ -94,6 +94,7 @@ async def platform_report(
             "source_en": r["source_title_en"],
             "buy_price": money(_bid(r)),        # platform buy price (خرید) = user sell
             "sell_price": money(_ask(r)),       # platform sell price (فروش) = user buy
+            "spread": money(_ask(r) - _bid(r)) if (_ask(r) is not None and _bid(r) is not None) else None,
             "user_buy_price": money(_ask(r)),
             "diff_from_gerami": diff,
             "is_gerami": is_g,

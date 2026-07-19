@@ -73,33 +73,43 @@ curl -H "X-API-Key: $KEY" \
 }
 ```
 
-### The Persian message (`data.message`)
+### Ready-made messages
 
-A ready-to-post Telegram message (Jalali date, Tehran time, Persian digits):
+The response carries three preformatted Persian message strings — pick the one
+that fits your channel:
+
+| field | shape | use |
+|-------|-------|-----|
+| `message_table` | ceiling/Gerami/floor summary + a **monospace `<pre>` table** of every platform (Buy / Sell / Spread), sorted by user-buy price, Gerami row flagged 🔸 | **what the Telegram DAG posts** (one message per metal) |
+| `message_compact` | 3-line block per metal (no header) | stacking several metals under one header |
+| `message` | long detailed report (position + market stats + full leaderboard) | a single verbose message |
+
+All use Jalali date, Tehran time (UTC+3:30), Persian digits, and `parse_mode=HTML`.
+
+**`message_table`** (the one used in the channel):
 
 ```
-📊 گزارش رقابتی قیمت — طلای ۱۸ عیار (قیمت خرید کاربر)
-🕓 ۱۴۰۵/۰۴/۲۸ — ۱۹:۰۲
+🟡 <b>طلای ۱۸ عیار</b>
+🕓 زمان: ۱۴۰۵/۰۴/۲۹ — ۰۱:۲۸
 
-🟢 جایگاه گرمی
-رتبه ۱۲ از ۱۷ · ارزان‌تر از ۶۹٪ رقبا
-قیمت خرید کاربر: ۱۸٬۷۷۷٬۴۷۷ تومان
-اختلاف با میانگین بازار: −۴۲٬۰۰۰ (−۰٫۲۲٪) ⬇️ ارزان‌تر ✅
-اختلاف با میانه: −۳۵٬۰۰۰
+🔺 سقف: گلدیکا — ۱۸٬۹۷۲٬۳۶۳
+🔸 گرمی: ۱۸٬۷۷۷٬۴۷۷ · رتبه ۳ از ۶
+🔻 کف: زرپی — ۱۸٬۱۳۳٬۳۳۱
 
-📈 خلاصهٔ بازار (بدون گرمی)
-میانگین: ۱۸٬۸۱۹٬۰۰۰ · میانه: ۱۸٬۸۱۲٬۰۰۰
-میانگین بدون پرت ۲σ: ۱۸٬۸۱۵٬۰۰۰
-کمینه: ۱۸٬۷۳۸٬۰۰۰ (میلی‌گلد)
-بیشینه: ۱۸٬۹۷۲٬۳۶۳ (گلدیکا)
-اسپرد بازار: ۲۳۴٬۳۶۳ · به‌روز: ۱۶ پلتفرم
-
-🏷 رتبه‌بندی قیمت خرید کاربر (زیاد→کم):
-۱. گلدیکا — ۱۸٬۹۷۲٬۳۶۳ (+۱۹۴٬۸۸۶)
-…
-⭐ ۱۲. گرمی — ۱۸٬۷۷۷٬۴۷۷
-…
+<pre>
+   | Market     |  Buy Price | Sell Price |  Spread |
+   |------------|------------|------------|---------|
+   | Goldika    | 18,700,000 | 18,972,363 | 272,363 |
+   | Technogold | 18,694,730 | 18,930,180 | 235,450 |
+🔸 | Gerami     | 18,701,243 | 18,777,477 |  76,234 |
+   | MilliGold  | 18,738,000 | 18,738,000 |       0 |
+   | ZarPay     | 18,133,331 | 18,133,331 |       0 |
+</pre>
 ```
+
+Buy Price = platform buy (خرید = user sell), Sell Price = platform sell
+(فروش = user buy), Spread = Sell − Buy. The 🔸 marker sits to the LEFT of the box
+so the columns stay aligned (emojis are ~2 monospace cells wide).
 
 Field notes:
 - **user-buy price** = the source's clean ask/فروش (the `-1` sentinel stripped; a

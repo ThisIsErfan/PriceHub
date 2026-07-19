@@ -198,57 +198,63 @@ def _num_en(x: Any) -> str:
     return f"{int(round(float(x))):,}"
 
 
+def _metal_dot(slug: str) -> str:
+    if slug.startswith(("gold", "coin")):
+        return "🟡"
+    if slug.startswith("silver"):
+        return "⚪"
+    if slug.startswith("copper"):
+        return "🟠"
+    return "▫️"
+
+
 def build_table(report: dict[str, Any]) -> str:
-    """One full per-metal message: a short Persian summary + a monospace table of
-    ALL platforms (Buy/Sell price), sorted by user-buy price, Gerami row marked.
-
-    The table is Latin (aligned in a Telegram <pre> block); the summary is Persian.
-    Minimal emoji by request.
-    """
+    """One full per-metal message: a Persian ceiling/Gerami/floor summary + a
+    monospace table of ALL platforms (Buy / Sell / Spread), sorted by user-buy
+    price, with Gerami's row flagged 🔸 (marker sits to the LEFT of the box so the
+    columns stay perfectly aligned — emojis are ~2 cells wide in monospace)."""
     a = report["asset"]
-    fa = _esc(a.get("title_fa", a.get("slug", "")))
+    slug = a.get("slug", "")
+    fa = _esc(a.get("title_fa", slug))
     stamp = report.get("stamp_fa", "")
-
-    # ── Persian summary (above the table) ──
-    out = [f"<b>{fa}</b> — پایش رقابتی  ({stamp})"]
-    g = report.get("gerami")
-    m = report.get("market")
-    if g and g.get("present"):
-        rank, of = g["rank"], g["of"]
-        if rank == 1:
-            standing = "گران‌ترین پلتفرم برای خریدار"
-        elif rank == of:
-            standing = "ارزان‌ترین پلتفرم برای خریدار"
-        else:
-            standing = f"ارزان‌تر از {fa_digits(str(g['cheaper_than_pct']))}٪ رقبا"
-        out.append(
-            f"گرمی: رتبه {fa_digits(str(rank))} از {fa_digits(str(of))} · {standing}"
-        )
-        if m:
-            out.append(
-                f"میانهٔ بازار: {fa_int(m['median'])} · اختلاف گرمی با میانه: "
-                f"{fa_signed(g['vs_market']['diff_from_median'])}"
-            )
-    else:
-        out.append("گرمی: دادهٔ به‌روز ندارد")
-    out.append("سورت بر اساس قیمت فروش (خرید کاربر)، زیاد→کم")
-
-    # ── Monospace table (Latin, aligned) ──
     lb = report.get("leaderboard") or []
-    names = [(("» " if r["is_gerami"] else "") + (r["source_en"] or r["source"])[:14]) for r in lb]
+    g = report.get("gerami")
+
+    # ── Header + ceiling / Gerami / floor summary ──
+    out = [f"{_metal_dot(slug)} <b>{fa}</b>", f"🕓 زمان: {stamp}", ""]
+    if lb:
+        top, bottom = lb[0], lb[-1]
+        out.append(f"🔺 سقف: {_esc(top['source_fa'])} — {fa_int(top['sell_price'])}")
+        if g and g.get("present"):
+            out.append(
+                f"🔸 گرمی: {fa_int(g['user_buy_price'])} · "
+                f"رتبه {fa_digits(str(g['rank']))} از {fa_digits(str(g['of']))}"
+            )
+        else:
+            out.append("🔸 گرمی: دادهٔ به‌روز ندارد")
+        out.append(f"🔻 کف: {_esc(bottom['source_fa'])} — {fa_int(bottom['sell_price'])}")
+    else:
+        out.append("دادهٔ به‌روزی برای این دارایی نیست.")
+
+    # ── Monospace table (Latin, aligned): Market | Buy | Sell | Spread ──
+    names = [(r["source_en"] or r["source"])[:14] for r in lb]
     buys = [_num_en(r["buy_price"]) for r in lb]
     sells = [_num_en(r["sell_price"]) for r in lb]
-    wn = max([len("Market")] + [len(n) for n in names]) if names else len("Market")
+    spreads = [_num_en(r["spread"]) for r in lb]
+    wn = max([len("Market")] + [len(x) for x in names]) if names else len("Market")
     wb = max([len("Buy Price")] + [len(x) for x in buys]) if buys else len("Buy Price")
     ws = max([len("Sell Price")] + [len(x) for x in sells]) if sells else len("Sell Price")
+    wp = max([len("Spread")] + [len(x) for x in spreads]) if spreads else len("Spread")
 
-    def row(name: str, buy: str, sell: str) -> str:
-        return f"| {name:<{wn}} | {buy:>{wb}} | {sell:>{ws}} |"
+    def box(name: str, buy: str, sell: str, spread: str) -> str:
+        return f"| {name:<{wn}} | {buy:>{wb}} | {sell:>{ws}} | {spread:>{wp}} |"
 
-    sep = "|" + "-" * (wn + 2) + "|" + "-" * (wb + 2) + "|" + "-" * (ws + 2) + "|"
-    table = [row("Market", "Buy Price", "Sell Price"), sep]
-    for name, buy, sell in zip(names, buys, sells):
-        table.append(row(name, buy, sell))
+    sep = "|" + "-" * (wn + 2) + "|" + "-" * (wb + 2) + "|" + "-" * (ws + 2) + "|" + "-" * (wp + 2) + "|"
+    # 3-cell left margin: "🔸 " (emoji≈2 + space) for Gerami, three spaces otherwise,
+    # so the table box lines up across every row while Gerami stays marked.
+    table = ["   " + box("Market", "Buy Price", "Sell Price", "Spread"), "   " + sep]
+    for r, name, buy, sell, spread in zip(lb, names, buys, sells, spreads):
+        mark = "🔸 " if r["is_gerami"] else "   "
+        table.append(mark + box(name, buy, sell, spread))
 
-    body = "\n".join(out) + "\n\n<pre>\n" + _esc("\n".join(table)) + "\n</pre>"
-    return body
+    return "\n".join(out) + "\n\n<pre>\n" + _esc("\n".join(table)) + "\n</pre>"
