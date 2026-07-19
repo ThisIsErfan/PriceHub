@@ -133,6 +133,7 @@ _STATS_ROWS_SQL = text(
     """
     SELECT s.slug      AS source_slug,
            s.title_fa  AS source_title_fa,
+           s.title_en  AS source_title_en,
            s.role      AS source_role,
            a.slug      AS asset_slug,
            a.symbol    AS asset_symbol,

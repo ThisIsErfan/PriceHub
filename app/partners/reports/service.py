@@ -43,11 +43,13 @@ async def platform_report(
     base = {"asset": {"slug": asset}, "currency": {"code": currency}, "params": params}
 
     if not rows:
-        stub = {"asset": {"slug": asset}, "gerami": None, "market": None, "leaderboard": []}
+        stub = {"asset": {"slug": asset}, "gerami": None, "market": None,
+                "leaderboard": [], "stamp_fa": fmt.tehran_stamp(now)}
         return {**base, "as_of": None, "gerami": None, "market": None,
-                "leaderboard": [], "stamp_fa": fmt.tehran_stamp(now),
+                "leaderboard": [], "stamp_fa": stub["stamp_fa"],
                 "message": fmt.build_message(stub, now),
                 "message_compact": fmt.build_compact(stub),
+                "message_table": fmt.build_table(stub),
                 "note": "no data for this asset/currency"}
 
     first = rows[0]
@@ -77,6 +79,10 @@ async def platform_report(
     grow = next((r for r in fresh if r["source_slug"] == GERAMI), None)
     gerami_ask = _ask(grow) if grow is not None else None
 
+    def _bid(r):  # user-sell price (platform buy / bid, خرید)
+        v = r["bid_clean"]
+        return float(v) if (v is not None and float(v) > 0) else None
+
     leaderboard = []
     for i, r in enumerate(lb_rows, start=1):
         is_g = r["source_slug"] == GERAMI
@@ -85,6 +91,9 @@ async def platform_report(
             "rank": i,
             "source": r["source_slug"],
             "source_fa": r["source_title_fa"],
+            "source_en": r["source_title_en"],
+            "buy_price": money(_bid(r)),        # platform buy price (خرید) = user sell
+            "sell_price": money(_ask(r)),       # platform sell price (فروش) = user buy
             "user_buy_price": money(_ask(r)),
             "diff_from_gerami": diff,
             "is_gerami": is_g,
@@ -154,4 +163,5 @@ async def platform_report(
     }
     report["message"] = fmt.build_message(report, now)
     report["message_compact"] = fmt.build_compact(report)
+    report["message_table"] = fmt.build_table(report)
     return report

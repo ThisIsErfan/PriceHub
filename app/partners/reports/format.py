@@ -189,3 +189,66 @@ def build_compact(report: dict[str, Any]) -> str:
             f"کف {_esc(m['min']['source_fa'])} | سقف {_esc(m['max']['source_fa'])}"
         )
     return "\n".join(lines)
+
+
+def _num_en(x: Any) -> str:
+    """Latin digits + thousands commas, for the aligned monospace table. None→0."""
+    if x is None:
+        return "0"
+    return f"{int(round(float(x))):,}"
+
+
+def build_table(report: dict[str, Any]) -> str:
+    """One full per-metal message: a short Persian summary + a monospace table of
+    ALL platforms (Buy/Sell price), sorted by user-buy price, Gerami row marked.
+
+    The table is Latin (aligned in a Telegram <pre> block); the summary is Persian.
+    Minimal emoji by request.
+    """
+    a = report["asset"]
+    fa = _esc(a.get("title_fa", a.get("slug", "")))
+    stamp = report.get("stamp_fa", "")
+
+    # ── Persian summary (above the table) ──
+    out = [f"<b>{fa}</b> — پایش رقابتی  ({stamp})"]
+    g = report.get("gerami")
+    m = report.get("market")
+    if g and g.get("present"):
+        rank, of = g["rank"], g["of"]
+        if rank == 1:
+            standing = "گران‌ترین پلتفرم برای خریدار"
+        elif rank == of:
+            standing = "ارزان‌ترین پلتفرم برای خریدار"
+        else:
+            standing = f"ارزان‌تر از {fa_digits(str(g['cheaper_than_pct']))}٪ رقبا"
+        out.append(
+            f"گرمی: رتبه {fa_digits(str(rank))} از {fa_digits(str(of))} · {standing}"
+        )
+        if m:
+            out.append(
+                f"میانهٔ بازار: {fa_int(m['median'])} · اختلاف گرمی با میانه: "
+                f"{fa_signed(g['vs_market']['diff_from_median'])}"
+            )
+    else:
+        out.append("گرمی: دادهٔ به‌روز ندارد")
+    out.append("سورت بر اساس قیمت فروش (خرید کاربر)، زیاد→کم")
+
+    # ── Monospace table (Latin, aligned) ──
+    lb = report.get("leaderboard") or []
+    names = [(("» " if r["is_gerami"] else "") + (r["source_en"] or r["source"])[:14]) for r in lb]
+    buys = [_num_en(r["buy_price"]) for r in lb]
+    sells = [_num_en(r["sell_price"]) for r in lb]
+    wn = max([len("Market")] + [len(n) for n in names]) if names else len("Market")
+    wb = max([len("Buy Price")] + [len(x) for x in buys]) if buys else len("Buy Price")
+    ws = max([len("Sell Price")] + [len(x) for x in sells]) if sells else len("Sell Price")
+
+    def row(name: str, buy: str, sell: str) -> str:
+        return f"| {name:<{wn}} | {buy:>{wb}} | {sell:>{ws}} |"
+
+    sep = "|" + "-" * (wn + 2) + "|" + "-" * (wb + 2) + "|" + "-" * (ws + 2) + "|"
+    table = [row("Market", "Buy Price", "Sell Price"), sep]
+    for name, buy, sell in zip(names, buys, sells):
+        table.append(row(name, buy, sell))
+
+    body = "\n".join(out) + "\n\n<pre>\n" + _esc("\n".join(table)) + "\n</pre>"
+    return body
