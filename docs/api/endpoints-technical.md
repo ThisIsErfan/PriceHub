@@ -78,6 +78,105 @@ curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/technical/suppliers/late
 
 ---
 
-> **Note:** only the two endpoints above are exposed. Catalog endpoints
-> (`/sources`, `/assets`) are not part of the technical surface for now; the
-> `reference:read` scope is unused until/unless they are added back.
+---
+
+## GET /v1/technical/prices/compare
+
+One asset's latest price across **all** sources — "compare this asset everywhere".
+Same `data` shape as `prices/latest`; `asset` is **required** so the intent is
+explicit.
+
+**Scope:** `prices:read`
+
+| Query | Type | Default | Description |
+|-------|------|---------|-------------|
+| `asset` | string | **required** | asset slug, e.g. `gold-18k` |
+| `currency` | string | – | currency code, e.g. `IRT`, `IRR` |
+
+```bash
+curl -H "X-API-Key: $KEY" \
+  "https://api.gerami.online/v1/technical/prices/compare?asset=gold-18k&currency=IRT"
+```
+
+`data`: identical to `prices/latest` (nested source/asset/currency + `is_single_rate` + price/bid/ask).
+
+---
+
+## GET /v1/technical/prices/stats
+
+Cross-source **statistical summary** for one (asset, currency), computed from the
+latest platform quotes. Each source contributes its **clean `mid`** (the `-1`
+sentinel is stripped and `mid = (bid+ask)/2`, matching the copilot consensus
+definition). Sources whose newest sample is **older than `max_age_seconds`
+(default 180s)** are excluded — we crawl every ~120s, so a source silent for
+>3min is treated as stale and left out. Gerami's own current quote is always
+surfaced separately for reference.
+
+**Scope:** `prices:read`
+
+| Query | Type | Default | Description |
+|-------|------|---------|-------------|
+| `asset` | string | **required** | asset slug, e.g. `gold-18k` |
+| `currency` | string | **required** | currency code, e.g. `IRT` |
+| `max_age_seconds` | int (30–3600) | `180` | exclude sources not updated within this window |
+| `role` | string | – | restrict the sample to a source role: `platform` or `reference` |
+
+```bash
+curl -H "X-API-Key: $KEY" \
+  "https://api.gerami.online/v1/technical/prices/stats?asset=gold-18k&currency=IRT"
+```
+
+`data`:
+```json
+{
+  "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
+  "currency": { "code": "IRT", "title_fa": "تومان" },
+  "as_of": "2026-07-19T15:32:25+00:00",
+  "params": { "max_age_seconds": 180, "role": null },
+  "sample": {
+    "total_sources": 18,
+    "included": 17,
+    "excluded": 1,
+    "included_sources": ["daric", "digikala", "gerami", "..."],
+    "excluded_sources": [ { "slug": "invi", "age_seconds": 250, "reason": "stale" } ]
+  },
+  "stats": {
+    "min": "18738000.00",
+    "max": "18847000.00",
+    "mean": "18781234.50",
+    "median": "18777477.00",
+    "stdev": "41250.10",
+    "mean_2sigma": "18779900.00",   // mean after dropping points beyond ±2σ
+    "count_2sigma": 17,
+    "mean_3sigma": "18781234.50",   // mean after dropping points beyond ±3σ
+    "count_3sigma": 18
+  },
+  "gerami": {
+    "price": "18777477.00",
+    "bid": "18701243.00",
+    "ask": "18777477.00",
+    "mid": "18739360.00",
+    "crawled_at": "2026-07-19T15:32:02+00:00",
+    "age_seconds": 41,
+    "included_in_stats": true,
+    "diff_from_median": "-38117.00",
+    "diff_from_mean": "-41874.50"
+  }
+}
+```
+
+Field notes:
+- **`stats`** is `null` when no fresh source has a usable price. All monetary
+  values are strings (2 dp), like the rest of the feed.
+- **`mean_2sigma` / `mean_3sigma`** are single-pass sigma-clipped means: drop
+  values more than k·σ from the mean, then re-average. `count_Nsigma` is how many
+  sources remained. With very few sources a lone outlier can inflate σ enough to
+  survive (statistical masking) — expected behaviour.
+- **`excluded_sources[].reason`** is `stale` (too old) or `no_price` (no usable
+  quote).
+- **`gerami`** is always present if Gerami has a row (even if stale/excluded);
+  `included_in_stats` says whether it counted, and `diff_from_*` compares its mid
+  to the market.
+
+> Prefer `stats` when you want the market summary; `compare` when you want each
+> source's row; `latest` for the full multi-asset dump.

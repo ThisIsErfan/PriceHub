@@ -41,6 +41,44 @@ async def prices_latest(
     )
 
 
+@router.get(
+    "/prices/compare",
+    summary="Compare one asset's latest price across ALL sources",
+)
+async def prices_compare(
+    _ctx=_auth_prices,
+    asset: str = Query(..., description="Asset slug to compare, e.g. gold-18k (required)"),
+    currency: Optional[str] = Query(None, description="Currency code, e.g. IRT, IRR"),
+    session: AsyncSession = Depends(get_session),
+):
+    # Same shape as prices/latest, but scoped to one asset — "this asset across
+    # every source". asset is required so the intent (comparison) is explicit.
+    return ok(await service.all_latest_prices(session, asset=asset, currency=currency))
+
+
+@router.get(
+    "/prices/stats",
+    summary="Cross-source statistical summary (mean/median/2σ/3σ trimmed/min/max) for one asset",
+)
+async def prices_stats(
+    _ctx=_auth_prices,
+    asset: str = Query(..., description="Asset slug, e.g. gold-18k (required)"),
+    currency: str = Query(..., description="Currency code, e.g. IRT (required)"),
+    max_age_seconds: int = Query(
+        180, ge=30, le=3600,
+        description="Exclude sources not updated within this many seconds (default 180 = 3min)",
+    ),
+    role: Optional[str] = Query(None, description="Restrict to a source role: platform|reference"),
+    session: AsyncSession = Depends(get_session),
+):
+    return ok(
+        await service.price_stats(
+            session, asset=asset, currency=currency,
+            max_age_seconds=max_age_seconds, role=role,
+        )
+    )
+
+
 @router.get("/suppliers/latest", summary="Latest supplier buy/sell quotes")
 async def suppliers_latest(
     _ctx=_auth_prices,

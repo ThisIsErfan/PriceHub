@@ -122,6 +122,65 @@ _SUPPLIER_LATEST_SQL = text(
 )
 
 
+# Per-source "clean mid" over the fast price_latest mirror, for statistics.
+# Replicates price_clean's normalization (canonical in the copilot DB) WITHOUT
+# scanning price_history: strip the "-1" sentinel (pos_price = price only when
+# > 0) and take mid = midpoint of bid/ask, each side falling back to the other
+# then to pos_price — so a one-sided or sentinel row still yields a usable mid.
+# `age_seconds` is computed against the DB clock (NOW()) to avoid app/DB skew.
+_STATS_ROWS_SQL = text(
+    """
+    SELECT s.slug      AS source_slug,
+           s.title_fa  AS source_title_fa,
+           s.role      AS source_role,
+           a.slug      AS asset_slug,
+           a.symbol    AS asset_symbol,
+           a.title_fa  AS asset_title_fa,
+           a.unit      AS asset_unit,
+           c.code      AS currency_code,
+           c.title_fa  AS currency_title_fa,
+           pl.price,
+           pl.bid,
+           pl.ask,
+           pl.crawled_at,
+           EXTRACT(EPOCH FROM (NOW() - pl.crawled_at))::float8 AS age_seconds,
+           (
+             COALESCE(pl.bid, pl.ask, CASE WHEN pl.price > 0 THEN pl.price END)
+             + COALESCE(pl.ask, pl.bid, CASE WHEN pl.price > 0 THEN pl.price END)
+           ) / 2.0 AS mid
+    FROM   price_latest pl
+    JOIN   sources    s ON s.id = pl.source_id
+    JOIN   assets     a ON a.id = pl.asset_id
+    JOIN   currencies c ON c.id = pl.currency_id
+    WHERE  s.deleted = FALSE
+      AND  a.deleted = FALSE
+      AND  c.deleted = FALSE
+      AND  a.slug = :asset
+      AND  c.code = :currency
+      AND  (CAST(:role AS text) IS NULL OR s.role = :role)
+    ORDER  BY s.slug
+    """
+)
+
+
+async def latest_clean_for_stats(
+    session: AsyncSession,
+    *,
+    asset: str,
+    currency: str,
+    role: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    """One row per source for (asset, currency) with a clean `mid` + `age_seconds`.
+
+    Feeds the statistics endpoint. `mid` may be None when a source has no usable
+    quote (all of price/bid/ask non-positive) — the caller skips those.
+    """
+    result = await session.execute(
+        _STATS_ROWS_SQL, {"asset": asset, "currency": currency, "role": role}
+    )
+    return [dict(r) for r in result.mappings().all()]
+
+
 async def latest_supplier_prices(
     session: AsyncSession,
     *,
