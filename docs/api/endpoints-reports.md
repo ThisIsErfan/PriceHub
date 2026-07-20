@@ -88,13 +88,16 @@ All use Jalali date, Tehran time (UTC+3:30), Persian digits, and `parse_mode=HTM
 
 **`message_table`** (the one used in the channel):
 
+`message_table` carries the metal title + summary + table, but **not** the
+timestamp — the caller writes `stamp_fa` once (when several metals are stacked in
+one message they share the same run time). The DAG prepends `🕓 زمان: {stamp_fa}`.
+
 ```
 🟡 <b>طلای ۱۸ عیار</b>
-🕓 زمان: ۱۴۰۵/۰۴/۲۹ — ۰۱:۲۸
 
-🔺 سقف: گلدیکا — ۱۸٬۹۷۲٬۳۶۳
+🔺 گلدیکا — ۱۸٬۹۷۲٬۳۶۳
 🔸 گرمی: ۱۸٬۷۷۷٬۴۷۷ · رتبه ۳ از ۶
-🔻 کف: زرپی — ۱۸٬۱۳۳٬۳۳۱
+🔻 زرپی — ۱۸٬۱۳۳٬۳۳۱
 
 <pre>
    | Market     |  Buy Price | Sell Price |  Spread |

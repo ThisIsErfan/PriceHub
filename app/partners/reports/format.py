@@ -216,12 +216,14 @@ def build_table(report: dict[str, Any]) -> str:
     a = report["asset"]
     slug = a.get("slug", "")
     fa = _esc(a.get("title_fa", slug))
-    stamp = report.get("stamp_fa", "")
     lb = report.get("leaderboard") or []
     g = report.get("gerami")
 
     # ── Header + ceiling / Gerami / floor summary ──
-    out = [f"{_metal_dot(slug)} <b>{fa}</b>", f"🕓 زمان: {stamp}", ""]
+    # The timestamp is intentionally NOT here: when several metals are stacked in
+    # one message it is written once at the top (they share the same run time).
+    # `stamp_fa` is on the response for the caller to place it.
+    out = [f"{_metal_dot(slug)} <b>{fa}</b>", ""]
     # Summary is from the USER's buy side (what the customer pays to buy = the
     # platform's sell/ask). The leaderboard is already sorted by it, high→low.
     # 🔺 = ceiling, 🔻 = floor (the emoji says it — no سقف/کف label needed).
