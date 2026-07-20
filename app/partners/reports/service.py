@@ -33,11 +33,16 @@ async def platform_report(
     asset: str,
     currency: str = "IRT",
     max_age_seconds: int = 180,
+    exclude: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     rows = await price_data.latest_clean_for_stats(
         session, asset=asset, currency=currency, role=None
     )
+    # Drop explicitly excluded sources (e.g. talair_api on gold) before anything.
+    if exclude:
+        drop = {e.strip() for e in exclude if e.strip()}
+        rows = [r for r in rows if r["source_slug"] not in drop]
 
     params = {"max_age_seconds": max_age_seconds, "sort_by": "user_buy_price (ask/فروش)"}
     base = {"asset": {"slug": asset}, "currency": {"code": currency}, "params": params}

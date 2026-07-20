@@ -7,6 +7,8 @@ an ACTIVE key scoped to the `reports` partner.
 
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,10 +35,15 @@ async def platform_compare(
         180, ge=30, le=3600,
         description="Exclude sources not updated within this many seconds (default 180 = 3min)",
     ),
+    exclude: Optional[str] = Query(
+        None, description="Comma-separated source slugs to drop, e.g. talair_api"
+    ),
     session: AsyncSession = Depends(get_session),
 ):
     return ok(
         await service.platform_report(
-            session, asset=asset, currency=currency, max_age_seconds=max_age_seconds
+            session, asset=asset, currency=currency,
+            max_age_seconds=max_age_seconds,
+            exclude=exclude.split(",") if exclude else None,
         )
     )
