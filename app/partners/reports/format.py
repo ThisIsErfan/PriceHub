@@ -229,12 +229,12 @@ def build_table(report: dict[str, Any]) -> str:
     # 🔺 = ceiling, 🔻 = floor (the emoji says it — no سقف/کف label needed).
     if lb:
         top, bottom = lb[0], lb[-1]
-        out.append(f"🔺 {_esc(top['source_fa'])} — {fa_int(top['user_buy_price'])}")
+        out.append(f"🔺 {_esc(top['source_fa'])}: {fa_int(top['user_buy_price'])}")
         if g and g.get("present"):
             out.append(f"🔸 گرمی: {fa_int(g['user_buy_price'])}")
         else:
             out.append("🔸 گرمی: دادهٔ به‌روز ندارد")
-        out.append(f"🔻 {_esc(bottom['source_fa'])} — {fa_int(bottom['user_buy_price'])}")
+        out.append(f"🔻 {_esc(bottom['source_fa'])}: {fa_int(bottom['user_buy_price'])}")
     else:
         out.append("دادهٔ به‌روزی برای این دارایی نیست.")
 
