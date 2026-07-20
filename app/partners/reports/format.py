@@ -20,11 +20,11 @@ def fa_digits(s: str) -> str:
 
 
 def fa_int(x: Any) -> str:
-    """Round to an integer and render with ٬ separators + Persian digits."""
+    """Round to an integer and render with ',' thousands separators + Persian digits."""
     if x is None:
         return "—"
     n = int(round(float(x)))
-    s = f"{abs(n):,}".replace(",", "٬")
+    s = f"{abs(n):,}"
     return ("−" if n < 0 else "") + fa_digits(s)
 
 
@@ -33,7 +33,7 @@ def fa_signed(x: Any) -> str:
     if x is None:
         return "—"
     n = int(round(float(x)))
-    s = f"{abs(n):,}".replace(",", "٬")
+    s = f"{abs(n):,}"
     return ("−" if n < 0 else "+") + fa_digits(s)
 
 
@@ -231,10 +231,7 @@ def build_table(report: dict[str, Any]) -> str:
         top, bottom = lb[0], lb[-1]
         out.append(f"🔺 {_esc(top['source_fa'])} — {fa_int(top['user_buy_price'])}")
         if g and g.get("present"):
-            out.append(
-                f"🔸 گرمی: {fa_int(g['user_buy_price'])} · "
-                f"رتبه {fa_digits(str(g['rank']))} از {fa_digits(str(g['of']))}"
-            )
+            out.append(f"🔸 گرمی: {fa_int(g['user_buy_price'])}")
         else:
             out.append("🔸 گرمی: دادهٔ به‌روز ندارد")
         out.append(f"🔻 {_esc(bottom['source_fa'])} — {fa_int(bottom['user_buy_price'])}")
