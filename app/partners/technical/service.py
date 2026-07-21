@@ -17,6 +17,21 @@ from app.shared.stats import money as _money
 from app.shared.stats import side_stats as _side_stats
 
 
+def _pos(v: Any) -> bool:
+    """A usable quote: present and > 0 (drops null and the `-1` sentinel)."""
+    return v is not None and float(v) > 0
+
+
+def _bid_ask(row: dict[str, Any]) -> tuple[Any, Any]:
+    """(bid, ask) for a row. A single-rate source quotes one number that stands
+    for both sides, so we fall its `price` into both `bid` and `ask` — the feed
+    always exposes bid/ask and never a bare `price`."""
+    price = row["price"] if _pos(row["price"]) else None
+    bid = row["bid"] if _pos(row["bid"]) else price
+    ask = row["ask"] if _pos(row["ask"]) else price
+    return bid, ask
+
+
 async def all_latest_prices(
     session: AsyncSession,
     *,
@@ -26,39 +41,40 @@ async def all_latest_prices(
     type: Optional[str] = None,
     assets: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Latest quote per (source, asset, currency) — same shape as the copilot
-    `GET /api/v1/prices/latest` (the "platform compare" section): nested
-    source/asset/currency refs, `is_single_rate`, and price/bid/ask.
+    """Latest quote per (source, asset, currency) — nested source/asset/currency
+    refs, `is_single_rate`, and `bid`/`ask`. There is no bare `price`: a
+    single-rate source's single number is surfaced as `bid == ask`.
     """
     rows = await price_data.latest_prices(
         session, source=source, asset=asset, currency=currency, type=type, assets=assets
     )
-    items = [
-        {
-            "source": {
-                "slug": r["source_slug"],
-                "title_en": r["source_title_en"],
-                "title_fa": r["source_title_fa"],
-            },
-            "asset": {
-                "slug": r["asset_slug"],
-                "symbol": r["asset_symbol"],
-                "std_symbol": r["asset_std_symbol"],
-                "title_fa": r["asset_title_fa"],
-                "unit": r["asset_unit"],
-            },
-            "currency": {
-                "code": r["currency_code"],
-                "title_fa": r["currency_title_fa"],
-            },
-            "is_single_rate": r["is_single_rate"],
-            "price": r["price"],
-            "bid": r["bid"],
-            "ask": r["ask"],
-            "crawled_at": r["crawled_at"],
-        }
-        for r in rows
-    ]
+    items = []
+    for r in rows:
+        bid, ask = _bid_ask(r)
+        items.append(
+            {
+                "source": {
+                    "slug": r["source_slug"],
+                    "title_en": r["source_title_en"],
+                    "title_fa": r["source_title_fa"],
+                },
+                "asset": {
+                    "slug": r["asset_slug"],
+                    "symbol": r["asset_symbol"],
+                    "std_symbol": r["asset_std_symbol"],
+                    "title_fa": r["asset_title_fa"],
+                    "unit": r["asset_unit"],
+                },
+                "currency": {
+                    "code": r["currency_code"],
+                    "title_fa": r["currency_title_fa"],
+                },
+                "is_single_rate": r["is_single_rate"],
+                "bid": bid,
+                "ask": ask,
+                "crawled_at": r["crawled_at"],
+            }
+        )
     return {
         "items": items,
         "count": len(items),

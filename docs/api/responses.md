@@ -54,9 +54,9 @@ rounding).
 
 ### Example — `GET /v1/technical/prices/platforms/latest`
 
-Same `data` shape as the copilot `GET /api/v1/prices/latest` (platform compare):
-nested `source`/`asset`/`currency` + `is_single_rate`. Each asset carries
-`std_symbol` (standard metal code, `null` when absent).
+Nested `source`/`asset`/`currency` + `is_single_rate`. Quotes are `bid`/`ask`
+only (no bare `price`; a single-rate source reports `bid == ask`). Each asset
+carries `std_symbol` (standard metal code, `null` when absent).
 
 ```json
 {
@@ -70,7 +70,6 @@ nested `source`/`asset`/`currency` + `is_single_rate`. Each asset carries
         "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
         "currency": { "code": "IRT", "title_fa": "تومان" },
         "is_single_rate": false,
-        "price": "3825000.00000000",
         "bid": "3820000.00000000",
         "ask": "3830000.00000000",
         "crawled_at": "2026-07-19T08:41:12+00:00"

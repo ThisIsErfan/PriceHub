@@ -22,11 +22,13 @@ are unchanged: you still pass the **slug** (e.g. `gold-18k`) as `asset`.
 
 ## GET /v1/technical/prices/platforms/latest
 
-Latest quote for **every** (platform, asset, currency), including `bid`/`ask`. This
-is the **same payload shape** as the copilot backend's
-`GET /api/v1/prices/latest` (the "platform compare" section) — nested
-`source`/`asset`/`currency` refs plus `is_single_rate` — so an existing copilot
-consumer can point at this endpoint unchanged.
+Latest quote for **every** (platform, asset, currency), as `bid`/`ask` — nested
+`source`/`asset`/`currency` refs plus `is_single_rate`.
+
+There is **no bare `price` field**: a **single-rate** source quotes one number for
+both sides, so it is surfaced as `bid == ask` (and `is_single_rate: true`). This
+keeps the technical feed uniform — you always read `bid`/`ask` and never special-
+case a `price`-only row.
 
 To pull **one asset across all platforms**, just pass `asset` (e.g.
 `?asset=gold-18k&currency=IRT`).
@@ -55,20 +57,29 @@ curl -H "X-API-Key: $KEY" \
       "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
       "currency": { "code": "IRT", "title_fa": "تومان" },
       "is_single_rate": false,
-      "price": "3825000.00000000",
       "bid": "3820000.00000000",
       "ask": "3830000.00000000",
       "crawled_at": "2026-07-19T08:41:12+00:00"
+    },
+    {
+      "source":   { "slug": "tgju", "title_en": "TGJU", "title_fa": "طلا و جواهر" },
+      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
+      "currency": { "code": "IRT", "title_fa": "تومان" },
+      "is_single_rate": true,
+      "bid": "18453900.00000000",
+      "ask": "18453900.00000000",
+      "crawled_at": "2026-07-19T08:41:10+00:00"
     }
   ],
-  "count": 1,
+  "count": 2,
   "generated_at": "2026-07-19T08:41:20.123456+00:00"
 }
 ```
 
-> `std_symbol` is the standard metal code (`XAU`/`XAG`/`XCU`), `null` for assets
-> that don't have one. Otherwise the `data` block mirrors copilot exactly — copilot
-> nests it under `{success,message,responseCode,data}`, and so does PriceHub.
+> Differences from the copilot `prices/latest`: the bare `price` field is dropped
+> (single-rate rows report `bid == ask` instead), and each asset carries
+> `std_symbol` (standard metal code `XAU`/`XAG`/`XCU`, `null` when absent). The
+> `source`/`asset`/`currency` refs and `is_single_rate` are otherwise the same.
 
 ---
 
