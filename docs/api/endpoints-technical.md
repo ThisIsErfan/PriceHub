@@ -8,29 +8,42 @@ Served by the code module [`app/partners/technical/`](../../app/partners/technic
 This feed returns fuller rows than `seo` (every source, bid/ask, supplier quotes)
 for machine integration.
 
+Every asset in the response carries `std_symbol` — the standard/ISO metal code
+(`XAU` gold, `XAG` silver, `XCU` copper), `null` for assets without one. Inputs
+are unchanged: you still pass the **slug** (e.g. `gold-18k`) as `asset`.
+
+## Endpoints
+
+- [GET /v1/technical/prices/platforms/latest](#get-v1technicalpricesplatformslatest) — latest quote for **every** platform/asset/currency, with `bid`/`ask`
+- [GET /v1/technical/prices/suppliers/latest](#get-v1technicalpricessupplierslatest) — latest supplier buy/sell quotes
+- [GET /v1/technical/prices/stats](#get-v1technicalpricesstats) — cross-source statistical summary (`bid`/`ask`, separately) for one asset
+
 ---
 
-## GET /v1/technical/prices/latest
+## GET /v1/technical/prices/platforms/latest
 
-Latest quote for **every** (source, asset, currency), including `bid`/`ask`. This
+Latest quote for **every** (platform, asset, currency), including `bid`/`ask`. This
 is the **same payload shape** as the copilot backend's
 `GET /api/v1/prices/latest` (the "platform compare" section) — nested
 `source`/`asset`/`currency` refs plus `is_single_rate` — so an existing copilot
 consumer can point at this endpoint unchanged.
 
+To pull **one asset across all platforms**, just pass `asset` (e.g.
+`?asset=gold-18k&currency=IRT`).
+
 **Scope:** `prices:read`
 
 | Query | Type | Default | Description |
 |-------|------|---------|-------------|
-| `source` | string | – | filter by source (platform) slug (e.g. `tgju`, `gerami`) |
-| `asset` | string | – | filter by asset slug (e.g. `gold-18k`, `gold-ounce`) |
+| `source` | string | – | filter by platform (source) slug (e.g. `tgju`, `gerami`) |
+| `asset` | string | – | asset slug — e.g. `gold-18k` (طلا), `silver-999` (نقره), `copper` (مس) |
 | `currency` | string | – | filter by currency code (e.g. `IRT`, `IRR`, `USD`) |
 | `type` | string | – | filter by asset type (e.g. `gold`, `currency`, `crypto`) |
 | `assets` | string | – | comma-separated list of asset slugs |
 
 ```bash
 curl -H "X-API-Key: $KEY" \
-  "https://api.gerami.online/v1/technical/prices/latest?asset=gold-18k&currency=IRT"
+  "https://api.gerami.online/v1/technical/prices/platforms/latest?asset=gold-18k&currency=IRT"
 ```
 
 `data`:
@@ -39,7 +52,7 @@ curl -H "X-API-Key: $KEY" \
   "items": [
     {
       "source":   { "slug": "gerami", "title_en": "Gerami", "title_fa": "گرمی" },
-      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
+      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
       "currency": { "code": "IRT", "title_fa": "تومان" },
       "is_single_rate": false,
       "price": "3825000.00000000",
@@ -53,63 +66,42 @@ curl -H "X-API-Key: $KEY" \
 }
 ```
 
-> Mirrors copilot exactly except the outer envelope: copilot nests this under its
-> own `{success,message,responseCode,data}`, and so does PriceHub — the `data`
-> block is identical.
+> `std_symbol` is the standard metal code (`XAU`/`XAG`/`XCU`), `null` for assets
+> that don't have one. Otherwise the `data` block mirrors copilot exactly — copilot
+> nests it under `{success,message,responseCode,data}`, and so does PriceHub.
 
 ---
 
-## GET /v1/technical/suppliers/latest
+## GET /v1/technical/prices/suppliers/latest
 
-Latest supplier **buy/sell/mid** quotes.
+Latest supplier **buy/sell** quotes.
 
 **Scope:** `prices:read`
 
 | Query | Type | Default | Description |
 |-------|------|---------|-------------|
 | `source` | string | – | filter by supplier slug (e.g. `zariran`, `abshodeasil`) |
-| `asset` | string | – | filter by asset slug |
+| `asset` | string | – | asset slug — e.g. `gold-18k` (طلا), `silver-999` (نقره), `copper` (مس) |
 
 ```bash
-curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/technical/suppliers/latest"
+curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/technical/prices/suppliers/latest"
 ```
 
-`data`: `{ items: [ {supplier, supplier_title_fa, asset, unit, currency, buy_price, sell_price, mid_price, crawled_at} ], count }`
+`data`: `{ items: [ {supplier, supplier_title_fa, asset, std_symbol, unit, currency, buy_price, sell_price, crawled_at} ], count }`
 
----
-
----
-
-## GET /v1/technical/prices/compare
-
-One asset's latest price across **all** sources — "compare this asset everywhere".
-Same `data` shape as `prices/latest`; `asset` is **required** so the intent is
-explicit.
-
-**Scope:** `prices:read`
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `asset` | string | **required** | asset slug, e.g. `gold-18k` |
-| `currency` | string | – | currency code, e.g. `IRT`, `IRR` |
-
-```bash
-curl -H "X-API-Key: $KEY" \
-  "https://api.gerami.online/v1/technical/prices/compare?asset=gold-18k&currency=IRT"
-```
-
-`data`: identical to `prices/latest` (nested source/asset/currency + `is_single_rate` + price/bid/ask).
+(`asset` is the slug; `std_symbol` is the standard metal code, `null` when absent.)
 
 ---
 
 ## GET /v1/technical/prices/stats
 
 Cross-source **statistical summary** for one (asset, currency), computed from the
-latest platform quotes. Each source contributes its **clean `mid`** (the `-1`
-sentinel is stripped and `mid = (bid+ask)/2`, matching the copilot consensus
-definition). Sources whose newest sample is **older than `max_age_seconds`
-(default 180s)** are excluded — we crawl every ~120s, so a source silent for
->3min is treated as stale and left out.
+latest platform quotes. Statistics are computed **separately for `bid` (خرید) and
+`ask` (فروش)**, each over that side's clean per-source value (the `-1` sentinel is
+stripped; a **single-rate** source's `price` counts on **both** sides). Sources
+whose newest sample is **older than `max_age_seconds` (default 180s)** are
+excluded — we crawl every ~120s, so a source silent for >3min is treated as stale
+and left out.
 
 **Gerami is deliberately excluded from the statistics** and returned separately
 under `gerami` (its own current quote + how far it sits from the market
@@ -120,7 +112,7 @@ own price against them.
 
 | Query | Type | Default | Description |
 |-------|------|---------|-------------|
-| `asset` | string | **required** | asset slug, e.g. `gold-18k` |
+| `asset` | string | **required** | asset slug — e.g. `gold-18k` (طلا), `silver-999` (نقره), `copper` (مس) |
 | `currency` | string | **required** | currency code, e.g. `IRT` |
 | `max_age_seconds` | int (30–3600) | `180` | exclude sources not updated within this window |
 | `role` | string | – | restrict the sample to a source role: `platform` or `reference` |
@@ -136,7 +128,7 @@ over its own per-source values.
 `data`:
 ```json
 {
-  "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
+  "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
   "currency": { "code": "IRT", "title_fa": "تومان" },
   "as_of": "2026-07-19T15:32:25+00:00",
   "params": { "max_age_seconds": 180, "role": null },
@@ -193,5 +185,5 @@ Field notes:
   quote + `bid_vs_market` / `ask_vs_market`, each comparing Gerami's side to the
   market's stats for that side).
 
-> Prefer `stats` when you want the market summary; `compare` when you want each
-> source's row; `latest` for the full multi-asset dump.
+> Prefer `stats` when you want the market summary; `platforms/latest` when you
+> want each platform's row (optionally scoped to one `asset`).

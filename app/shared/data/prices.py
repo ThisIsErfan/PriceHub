@@ -33,6 +33,7 @@ _LATEST_SQL = text(
            s.role      AS source_role,
            a.slug      AS asset_slug,
            a.symbol    AS asset_symbol,
+           a.std_symbol AS asset_std_symbol,
            a.title_en  AS asset_title_en,
            a.title_fa  AS asset_title_fa,
            a.type      AS asset_type,
@@ -101,12 +102,12 @@ _SUPPLIER_LATEST_SQL = text(
            s.title_fa  AS source_title_fa,
            a.slug      AS asset_slug,
            a.symbol    AS asset_symbol,
+           a.std_symbol AS asset_std_symbol,
            a.title_fa  AS asset_title_fa,
            a.unit      AS asset_unit,
            c.code      AS currency_code,
            spl.buy_price,
            spl.sell_price,
-           spl.mid_price,
            spl.crawled_at
     FROM   supplier_price_latest spl
     JOIN   sources    s ON s.id = spl.source_id
@@ -137,6 +138,7 @@ _STATS_ROWS_SQL = text(
            s.role      AS source_role,
            a.slug      AS asset_slug,
            a.symbol    AS asset_symbol,
+           a.std_symbol AS asset_std_symbol,
            a.title_fa  AS asset_title_fa,
            a.unit      AS asset_unit,
            c.code      AS currency_code,

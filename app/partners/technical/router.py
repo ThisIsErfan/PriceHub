@@ -20,15 +20,19 @@ router = APIRouter(tags=["technical"])
 
 _auth_prices = Depends(require_partner(SLUG, scope="prices:read"))
 
+# Shared help text for the `asset` input — the same slug as today; the standard
+# symbol (XAU/XAG/XCU) is returned in the response, not required as input.
+_ASSET_DESC = "Asset slug, e.g. gold-18k (طلا), silver-999 (نقره), copper (مس)"
+
 
 @router.get(
-    "/prices/latest",
-    summary="Latest quote per source/asset/currency — same shape as copilot's platform-compare",
+    "/prices/platforms/latest",
+    summary="Latest quote per platform/asset/currency — bid/ask + standard symbol",
 )
-async def prices_latest(
+async def platforms_latest(
     _ctx=_auth_prices,
-    source: Optional[str] = Query(None, description="Filter by source (platform) slug"),
-    asset: Optional[str] = Query(None, description="Filter by asset slug, e.g. gold-18k"),
+    source: Optional[str] = Query(None, description="Filter by platform (source) slug"),
+    asset: Optional[str] = Query(None, description=f"Filter by {_ASSET_DESC}"),
     currency: Optional[str] = Query(None, description="Filter by currency code, e.g. IRT, IRR"),
     type: Optional[str] = Query(None, description="Filter by asset type"),
     assets: Optional[str] = Query(None, description="Filter by a comma-separated list of asset slugs"),
@@ -41,19 +45,14 @@ async def prices_latest(
     )
 
 
-@router.get(
-    "/prices/compare",
-    summary="Compare one asset's latest price across ALL sources",
-)
-async def prices_compare(
+@router.get("/prices/suppliers/latest", summary="Latest supplier buy/sell quotes")
+async def suppliers_latest(
     _ctx=_auth_prices,
-    asset: str = Query(..., description="Asset slug to compare, e.g. gold-18k (required)"),
-    currency: Optional[str] = Query(None, description="Currency code, e.g. IRT, IRR"),
+    source: Optional[str] = Query(None, description="Filter by supplier slug"),
+    asset: Optional[str] = Query(None, description=f"Filter by {_ASSET_DESC}"),
     session: AsyncSession = Depends(get_session),
 ):
-    # Same shape as prices/latest, but scoped to one asset — "this asset across
-    # every source". asset is required so the intent (comparison) is explicit.
-    return ok(await service.all_latest_prices(session, asset=asset, currency=currency))
+    return ok(await service.supplier_latest(session, source=source, asset=asset))
 
 
 @router.get(
@@ -62,7 +61,7 @@ async def prices_compare(
 )
 async def prices_stats(
     _ctx=_auth_prices,
-    asset: str = Query(..., description="Asset slug, e.g. gold-18k (required)"),
+    asset: str = Query(..., description=f"{_ASSET_DESC} (required)"),
     currency: str = Query(..., description="Currency code, e.g. IRT (required)"),
     max_age_seconds: int = Query(
         180, ge=30, le=3600,
@@ -77,13 +76,3 @@ async def prices_stats(
             max_age_seconds=max_age_seconds, role=role,
         )
     )
-
-
-@router.get("/suppliers/latest", summary="Latest supplier buy/sell quotes")
-async def suppliers_latest(
-    _ctx=_auth_prices,
-    source: Optional[str] = Query(None, description="Filter by supplier slug"),
-    asset: Optional[str] = Query(None, description="Filter by asset slug"),
-    session: AsyncSession = Depends(get_session),
-):
-    return ok(await service.supplier_latest(session, source=source, asset=asset))

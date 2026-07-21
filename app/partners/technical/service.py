@@ -43,6 +43,7 @@ async def all_latest_prices(
             "asset": {
                 "slug": r["asset_slug"],
                 "symbol": r["asset_symbol"],
+                "std_symbol": r["asset_std_symbol"],
                 "title_fa": r["asset_title_fa"],
                 "unit": r["asset_unit"],
             },
@@ -75,11 +76,11 @@ async def supplier_latest(
             "supplier": r["source_slug"],
             "supplier_title_fa": r["source_title_fa"],
             "asset": r["asset_slug"],
+            "std_symbol": r["asset_std_symbol"],
             "unit": r["asset_unit"],
             "currency": r["currency_code"],
             "buy_price": r["buy_price"],
             "sell_price": r["sell_price"],
-            "mid_price": r["mid_price"],
             "crawled_at": r["crawled_at"],
         }
         for r in rows
@@ -125,6 +126,7 @@ async def price_stats(
     first = rows[0]
     asset_meta = {
         "slug": first["asset_slug"], "symbol": first["asset_symbol"],
+        "std_symbol": first["asset_std_symbol"],
         "title_fa": first["asset_title_fa"], "unit": first["asset_unit"],
     }
     currency_meta = {"code": first["currency_code"], "title_fa": first["currency_title_fa"]}

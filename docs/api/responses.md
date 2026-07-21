@@ -52,10 +52,11 @@ rounding).
 }
 ```
 
-### Example — `GET /v1/technical/prices/latest`
+### Example — `GET /v1/technical/prices/platforms/latest`
 
 Same `data` shape as the copilot `GET /api/v1/prices/latest` (platform compare):
-nested `source`/`asset`/`currency` + `is_single_rate`.
+nested `source`/`asset`/`currency` + `is_single_rate`. Each asset carries
+`std_symbol` (standard metal code, `null` when absent).
 
 ```json
 {
@@ -66,7 +67,7 @@ nested `source`/`asset`/`currency` + `is_single_rate`.
     "items": [
       {
         "source":   { "slug": "gerami", "title_en": "Gerami", "title_fa": "گرمی" },
-        "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
+        "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
         "currency": { "code": "IRT", "title_fa": "تومان" },
         "is_single_rate": false,
         "price": "3825000.00000000",
@@ -81,7 +82,7 @@ nested `source`/`asset`/`currency` + `is_single_rate`.
 }
 ```
 
-### Example — `GET /v1/technical/suppliers/latest`
+### Example — `GET /v1/technical/prices/suppliers/latest`
 
 ```json
 {
@@ -91,11 +92,11 @@ nested `source`/`asset`/`currency` + `is_single_rate`.
         "supplier": "zariran",
         "supplier_title_fa": "زر ایران",
         "asset": "gold-18k",
+        "std_symbol": "XAU",
         "unit": "per_gram",
         "currency": "IRR",
         "buy_price": "38100000.00000000",
         "sell_price": "38300000.00000000",
-        "mid_price": "38200000.00000000",
         "crawled_at": "2026-07-19T08:41:10.000000+00:00"
       }
     ],
