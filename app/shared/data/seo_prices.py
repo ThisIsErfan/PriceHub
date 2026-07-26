@@ -31,7 +31,6 @@ _PAGE_SQL = text(
            change_1d_percent,
            change_30d_percent,
            weekly_chart_path,
-           detail_url,
            crawled_at
     FROM   seo_schm.talasea_gold_prices
     ORDER  BY CASE category WHEN 'gold' THEN 0 ELSE 1 END, id

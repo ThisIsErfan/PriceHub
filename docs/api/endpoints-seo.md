@@ -23,7 +23,7 @@ of the talasea scrape:
 | `low_price` / `high_price` | Gerami — min/max over the last 24h |
 | `change_1d_percent` | Gerami — vs ~24h ago |
 | `change_30d_percent` | Gerami — vs ~30d ago |
-| `name`, `unit`, `detail_url`, `category` | stored (talasea) — unchanged |
+| `name`, `unit`, `category` | stored (talasea) — unchanged |
 | `weekly_chart_path` | stored (talasea) — the sparkline is a talasea render, not in the gerami feed |
 
 If Gerami has no 18k history (e.g. a fresh environment), the stored talasea
@@ -50,7 +50,6 @@ other row always comes from the talasea scrape.
         "change_1d_percent": "1.528",
         "change_30d_percent": "15.108",
         "weekly_chart_path": "M2,44...",
-        "detail_url": "https://talasea.ir/geram18",
         "crawled_at": "2026-07-26T12:26:46.855151+00:00"
       }
     ],

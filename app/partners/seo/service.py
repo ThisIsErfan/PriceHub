@@ -73,7 +73,7 @@ _PAGE_FIELDS = (
     "category", "slug", "name", "unit",
     "current_price", "low_price", "high_price",
     "change_1d_percent", "change_30d_percent",
-    "weekly_chart_path", "detail_url", "crawled_at",
+    "weekly_chart_path", "crawled_at",
 )
 
 # The 18k-gram row (طلای ۱۸ عیار) whose numeric fields come from the gerami
@@ -96,10 +96,10 @@ async def price_page(session: AsyncSession) -> dict[str, Any]:
 
     All rows keep the talasea-scraped fields. For `geram18`, the fields gerami
     can rebuild from its own price history — current price, day low/high, and
-    1-day / 30-day change — are overridden; the row's name/unit/detail_url and
-    the weekly sparkline (a talasea render, absent from the gerami feed) are kept
-    from the stored row. If gerami has no history, the stored talasea values are
-    served unchanged.
+    1-day / 30-day change — are overridden; the row's name/unit and the weekly
+    sparkline (a talasea render, absent from the gerami feed) are kept from the
+    stored row. If gerami has no history, the stored talasea values are served
+    unchanged.
     """
     rows = await seo_data.talasea_gold_prices(session)
 
