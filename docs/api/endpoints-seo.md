@@ -1,21 +1,71 @@
 # SEO partner endpoints
 
 Base: `https://api.gerami.online/v1/seo`
-Auth: `X-API-Key` for a key on partner `seo`.
+Auth: `X-API-Key` for a key on partner `seo` (scope `prices:read`).
 
-## Status: no endpoints yet
+## `GET /price-page`
 
-The SEO surface is intentionally **empty for now** — its endpoints will be
-defined later once the requirements are set. The `seo` partner, its API key, and
-the `/v1/seo` namespace already exist, so adding routes later is purely additive.
+The site's price page: every row of `seo_schm.talasea_gold_prices` (the gold and
+coin tables scraped from talasea.ir/gold-price), latest snapshot only. Items are
+returned in on-page order — the gold table first, then coins.
 
-Any request under `/v1/seo/*` currently returns **404** (with a valid `seo` key)
-or **401/403** first if the key is missing or belongs to another partner.
+**Scope:** `prices:read`
 
-## Adding SEO endpoints later
+### 18k gold is served from the Gerami source
 
-1. Define routes in [`app/partners/seo/router.py`](../../app/partners/seo/router.py),
-   each behind `require_partner("seo", scope=…)`.
-2. A reference implementation (featured prices, news, assets) is preserved in
-   [`app/partners/seo/service.py`](../../app/partners/seo/service.py) to draw from.
-3. Update this doc with the concrete endpoints and sample responses.
+For the `geram18` row (طلای ۱۸ عیار, one gram), the numeric fields are **rebuilt
+from the Gerami source** — which is already crawled into `price_schm` — instead
+of the talasea scrape:
+
+| Field | Source for `geram18` |
+|-------|----------------------|
+| `current_price` | Gerami — latest 18k price |
+| `low_price` / `high_price` | Gerami — min/max over the last 24h |
+| `change_1d_percent` | Gerami — vs ~24h ago |
+| `change_30d_percent` | Gerami — vs ~30d ago |
+| `name`, `unit`, `detail_url`, `category` | stored (talasea) — unchanged |
+| `weekly_chart_path` | stored (talasea) — the sparkline is a talasea render, not in the gerami feed |
+
+If Gerami has no 18k history (e.g. a fresh environment), the stored talasea
+values are served unchanged and `gold_18k_source` reports `"talasea"`. Every
+other row always comes from the talasea scrape.
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "OK",
+  "responseCode": 200,
+  "data": {
+    "items": [
+      {
+        "category": "gold",
+        "slug": "geram18",
+        "name": "طلای ۱۸ عیار",
+        "unit": "تومان",
+        "current_price": "18071900.0000",
+        "low_price": "17900000.0000",
+        "high_price": "18100000.0000",
+        "change_1d_percent": "1.528",
+        "change_30d_percent": "15.108",
+        "weekly_chart_path": "M2,44...",
+        "detail_url": "https://talasea.ir/geram18",
+        "crawled_at": "2026-07-26T12:26:46.855151+00:00"
+      }
+    ],
+    "count": 13,
+    "gold_18k_source": "gerami",
+    "generated_at": "2026-07-26T12:30:00.000000+00:00"
+  }
+}
+```
+
+Prices/percentages are exact decimal **strings** (never floats — see
+[responses.md](responses.md)).
+
+### Example
+
+```bash
+curl -H "X-API-Key: $SEO_KEY" https://api.gerami.online/v1/seo/price-page
+```
