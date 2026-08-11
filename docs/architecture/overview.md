@@ -80,5 +80,6 @@ For `GET https://api.gerami.online/v1/seo/prices/latest` with header
 | `app/usage/ratelimit.py` | Redis fixed-window limiter |
 | `app/usage/recorder.py` | durable per-partner usage counting |
 | `app/shared/data/` | reusable, correct SQL over price/news |
+| `app/shared/refs.py` | the response standard — source/asset/currency refs, quote items, list wrapper |
 | `app/partners/<slug>/` | one code module per partner (router + service + README) |
 | `app/main.py` | app wiring, envelope, usage middleware, health |

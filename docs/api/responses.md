@@ -20,43 +20,72 @@ Every response — success or error — uses one envelope:
 
 The HTTP status code always equals `responseCode`, so clients can branch on either.
 
-## Success payload shapes
+## The response standard
 
-Most data endpoints return a list under `data.items` plus a `count`. Timestamps
-are ISO-8601 UTC. Prices are numeric strings/numbers exactly as stored (no
-rounding).
+Every endpoint follows the same three rules. They are implemented once, in
+[`app/shared/refs.py`](../../app/shared/refs.py) — no endpoint defines its own
+version of a source, an asset or a currency.
 
-### Example — `GET /v1/seo/prices/latest`
+### 1. Lists always look the same
 
 ```json
-{
-  "success": true,
-  "message": "OK",
-  "responseCode": 200,
-  "data": {
-    "items": [
-      {
-        "asset": "gold-18k",
-        "asset_title_fa": "طلای ۱۸ عیار",
-        "asset_title_en": "Gold 18K",
-        "unit": "per_gram",
-        "source": "gerami",
-        "currency": "IRR",
-        "price": "38250000.00000000",
-        "crawled_at": "2026-07-19T08:41:12.000000+00:00"
-      }
-    ],
-    "count": 1,
-    "generated_at": "2026-07-19T08:41:20.123456+00:00"
-  }
-}
+"data": { "items": [ … ], "count": 12, "generated_at": "2026-07-19T08:41:20.123456+00:00" }
 ```
 
-### Example — `GET /v1/technical/prices/platforms/latest`
+`count` is the number of items returned; `generated_at` is when the server built
+the response (ISO-8601 UTC). Endpoint-specific metadata sits between the two
+(e.g. `gold_18k_source` on the SEO price page).
 
-Nested `source`/`asset`/`currency` + `is_single_rate`. Quotes are `bid`/`ask`
-only (no bare `price`; a single-rate source reports `bid == ask`). Each asset
-carries `std_symbol` (standard metal code, `null` when absent).
+### 2. Entities are nested objects with fixed keys
+
+Wherever a response names a source, an asset or a currency, it embeds **exactly**
+these objects — never a flattened `asset_title_fa`, never a partial subset:
+
+```json
+"source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" }
+"asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+              "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" }
+"currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" }
+```
+
+| Field | Meaning |
+|-------|---------|
+| `source.role` | `platform` · `reference` · `supplier` — what kind of quote this is |
+| `asset.slug` | the **input** key: `?asset=gold-18k` |
+| `asset.symbol` | internal join key the crawlers map to (`GOLD_18K`) |
+| `asset.std_symbol` | the standard instrument code, purity + unit qualified — `XAU750g` (gold 750, per gram), `XAG999g` (silver 999), `XCU9999g` (copper 9999). `null` for assets outside that set |
+| `currency.code` | the standard currency symbol the quote is denominated in (`IRT`, `IRR`, `USD`) |
+| `currency.type` | `fiat` · `crypto` |
+
+Keys are **always present**. An unknown value is `null` — never an absent key —
+so one parser works across every endpoint.
+
+News articles carry a `source` too, but from the separate news-feed catalog, so
+it ends in `type` (`website` · `website_api` · `rss`) instead of `role`.
+
+### 3. Quotes are always `bid` / `ask`
+
+There is **no bare `price` field** anywhere in the API.
+
+| Field | Meaning |
+|-------|---------|
+| `bid` | خرید — the price the source **buys** at (for a supplier: its `buy_price`) |
+| `ask` | فروش — the price the source **sells** at (for a supplier: its `sell_price`) |
+| `is_single_rate` | `true` when the source publishes one number for both sides — it is then reported as `bid == ask` |
+
+A value is either a usable quote (> 0) or `null`; the `-1` "no quote" sentinel
+from the crawlers is never exposed. Prices are exact decimal **strings** (never
+floats — large rial amounts would lose precision) and timestamps are ISO-8601
+UTC.
+
+Because platform and supplier rows share this shape, one parser reads both feeds
+and `source.role` is what tells them apart.
+
+## Success payload shapes
+
+### Example — a quote feed (`/v1/technical/prices/platforms/latest`, `/v1/technical/prices/suppliers/latest`, `/v1/seo/prices/latest`)
+
+All three return the identical item shape:
 
 ```json
 {
@@ -66,9 +95,10 @@ carries `std_symbol` (standard metal code, `null` when absent).
   "data": {
     "items": [
       {
-        "source":   { "slug": "gerami", "title_en": "Gerami", "title_fa": "گرمی" },
-        "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
-        "currency": { "code": "IRT", "title_fa": "تومان" },
+        "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" },
+        "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+                      "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
+        "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
         "is_single_rate": false,
         "bid": "3820000.00000000",
         "ask": "3830000.00000000",
@@ -81,28 +111,8 @@ carries `std_symbol` (standard metal code, `null` when absent).
 }
 ```
 
-### Example — `GET /v1/technical/prices/suppliers/latest`
-
-```json
-{
-  "data": {
-    "items": [
-      {
-        "supplier": "zariran",
-        "supplier_title_fa": "زر ایران",
-        "asset": "gold-18k",
-        "std_symbol": "XAU",
-        "unit": "per_gram",
-        "currency": "IRR",
-        "buy_price": "38100000.00000000",
-        "sell_price": "38300000.00000000",
-        "crawled_at": "2026-07-19T08:41:10.000000+00:00"
-      }
-    ],
-    "count": 1
-  }
-}
-```
+For a supplier row only the source differs — `"role": "supplier"`, `bid` is its
+خرید and `ask` its فروش, and `is_single_rate` is always `false`.
 
 ### Example — `GET /v1/seo/news`
 
@@ -111,19 +121,59 @@ carries `std_symbol` (standard metal code, `null` when absent).
   "data": {
     "items": [
       {
+        "source": { "slug": "yahoo_finance_metals", "title_fa": "یاهو فایننس",
+                    "title_en": "Yahoo Finance", "type": "website_api" },
         "title": "Gold edges higher as ...",
         "summary": "Spot gold rose ...",
         "url": "https://finance.yahoo.com/news/...",
         "publisher": "Reuters",
         "image_url": "https://.../thumb.jpg",
-        "published_at": "2026-07-19T07:30:00+00:00",
-        "source": "yahoo_finance_metals"
+        "published_at": "2026-07-19T07:30:00+00:00"
       }
     ],
-    "count": 1
+    "count": 1,
+    "generated_at": "2026-07-19T08:41:20.123456+00:00"
   }
 }
 ```
+
+### Example — `GET /v1/seo/price-page`
+
+A mirror of the talasea gold/coin tables, so its items keep the scraped page's
+own columns (`category`, `slug`, `name`, `unit`) — those are not rows of the
+`assets` / `currencies` catalogs and have no ref. Each item does carry the
+standard `source` ref naming which producer it came from:
+
+```json
+{
+  "data": {
+    "items": [
+      {
+        "source": { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" },
+        "category": "gold",
+        "slug": "geram18",
+        "name": "طلای ۱۸ عیار",
+        "unit": "تومان",
+        "current_price": "18071900.0000",
+        "low_price": "17900000.0000",
+        "high_price": "18100000.0000",
+        "change_1d_percent": "1.528",
+        "change_30d_percent": "15.108",
+        "weekly_chart_path": "M2,44...",
+        "crawled_at": "2026-07-26T12:26:46.855151+00:00"
+      }
+    ],
+    "count": 13,
+    "gold_18k_source": "gerami",
+    "generated_at": "2026-07-26T12:30:00.000000+00:00"
+  }
+}
+```
+
+### Example — a single-object endpoint (`/v1/technical/prices/stats`)
+
+Not a list, so no `items`/`count`; the same `asset` / `currency` refs head the
+object. See [endpoints-technical.md](endpoints-technical.md).
 
 ## Error payload
 

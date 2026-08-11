@@ -14,12 +14,12 @@ Understand the system before changing it.
 Everything a consumer of the API needs.
 - [health.md](api/health.md) — public liveness (`/health`) & readiness (`/health/ready`) checks — probe before calling.
 - [authentication.md](api/authentication.md) — API keys, the `X-API-Key` header, scopes, tenant isolation.
-- [responses.md](api/responses.md) — the response envelope and example payloads per endpoint.
+- [responses.md](api/responses.md) — **the response standard**: the envelope, the shared source/asset/currency refs, bid/ask, and example payloads.
 - [rate-limiting.md](api/rate-limiting.md) — the per-second / per-minute caps and the `429` behaviour.
 - [errors.md](api/errors.md) — every error code, when it fires, and how to react.
 - [endpoints-technical.md](api/endpoints-technical.md) — the `technical` partner's endpoints + sample responses.
 - [endpoints-reports.md](api/endpoints-reports.md) — the `reports` partner: competitive report + ready Persian Telegram message.
-- [endpoints-seo.md](api/endpoints-seo.md) — the `seo` partner's endpoints (none yet).
+- [endpoints-seo.md](api/endpoints-seo.md) — the `seo` partner: price page, featured prices, news.
 
 ### database/
 - [schema.md](database/schema.md) — `partner_schm` tables, the `partner_api_usr` role, grants, and usage-reporting queries.

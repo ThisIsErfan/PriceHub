@@ -8,9 +8,11 @@ Served by the code module [`app/partners/technical/`](../../app/partners/technic
 This feed returns fuller rows than `seo` (every source, bid/ask, supplier quotes)
 for machine integration.
 
-Every asset in the response carries `std_symbol` — the standard/ISO metal code
-(`XAU` gold, `XAG` silver, `XCU` copper), `null` for assets without one. Inputs
-are unchanged: you still pass the **slug** (e.g. `gold-18k`) as `asset`.
+Every response follows the shared standard: nested `source` / `asset` /
+`currency` refs with fixed keys, `bid`/`ask` quotes, and `items` + `count` +
+`generated_at` on every list — see [responses.md](responses.md). Inputs are
+unchanged: you still pass the **slug** (e.g. `gold-18k`) as `asset`, and each
+asset carries the standard code `std_symbol` (`XAU750g`, `XAG999g`, `XCU9999g`).
 
 ## Endpoints
 
@@ -53,18 +55,20 @@ curl -H "X-API-Key: $KEY" \
 {
   "items": [
     {
-      "source":   { "slug": "gerami", "title_en": "Gerami", "title_fa": "گرمی" },
-      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
-      "currency": { "code": "IRT", "title_fa": "تومان" },
+      "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" },
+      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+                    "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
+      "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
       "is_single_rate": false,
       "bid": "3820000.00000000",
       "ask": "3830000.00000000",
       "crawled_at": "2026-07-19T08:41:12+00:00"
     },
     {
-      "source":   { "slug": "tgju", "title_en": "TGJU", "title_fa": "طلا و جواهر" },
-      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
-      "currency": { "code": "IRT", "title_fa": "تومان" },
+      "source":   { "slug": "tgju", "title_fa": "طلا و جواهر", "title_en": "TGJU", "role": "platform" },
+      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+                    "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
+      "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
       "is_single_rate": true,
       "bid": "18453900.00000000",
       "ask": "18453900.00000000",
@@ -77,9 +81,9 @@ curl -H "X-API-Key: $KEY" \
 ```
 
 > Differences from the copilot `prices/latest`: the bare `price` field is dropped
-> (single-rate rows report `bid == ask` instead), and each asset carries
-> `std_symbol` (standard metal code `XAU`/`XAG`/`XCU`, `null` when absent). The
-> `source`/`asset`/`currency` refs and `is_single_rate` are otherwise the same.
+> (single-rate rows report `bid == ask` instead), and the refs are the standard
+> ones — `source.role`, `asset.std_symbol`/`type`, `currency.type` are all
+> included. `is_single_rate` is otherwise the same.
 
 ---
 
@@ -98,9 +102,36 @@ Latest supplier **buy/sell** quotes.
 curl -H "X-API-Key: $KEY" "https://api.gerami.online/v1/technical/prices/suppliers/latest"
 ```
 
-`data`: `{ items: [ {supplier, supplier_title_fa, asset, std_symbol, unit, currency, buy_price, sell_price, crawled_at} ], count }`
+Items are the **same shape as the platform feed** — the supplier's `buy_price`
+(خرید) is the `bid` and its `sell_price` (فروش) is the `ask`, so one parser reads
+both feeds and `source.role` (`supplier`) is what tells them apart. Suppliers
+quote two sides, so `is_single_rate` is always `false`.
 
-(`asset` is the slug; `std_symbol` is the standard metal code, `null` when absent.)
+`data`:
+```json
+{
+  "items": [
+    {
+      "source":   { "slug": "zariran", "title_fa": "زر ایران", "title_en": "Zariran", "role": "supplier" },
+      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+                    "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
+      "currency": { "code": "IRR", "title_fa": "ریال ایران", "title_en": "Iranian Rial", "type": "fiat" },
+      "is_single_rate": false,
+      "bid": "38100000.00000000",
+      "ask": "38300000.00000000",
+      "crawled_at": "2026-07-19T08:41:10+00:00"
+    }
+  ],
+  "count": 1,
+  "generated_at": "2026-07-19T08:41:20.123456+00:00"
+}
+```
+
+> **Changed** — this endpoint previously returned flat fields
+> (`supplier`, `supplier_title_fa`, `asset`, `unit`, `currency`, `buy_price`,
+> `sell_price`). Read `source.slug` instead of `supplier`, `asset.slug` instead
+> of `asset`, `currency.code` instead of `currency`, and `bid`/`ask` instead of
+> `buy_price`/`sell_price`.
 
 ---
 
@@ -139,8 +170,9 @@ over its own per-source values.
 `data`:
 ```json
 {
-  "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU", "title_fa": "طلای ۱۸ عیار", "unit": "per_gram" },
-  "currency": { "code": "IRT", "title_fa": "تومان" },
+  "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+                "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
+  "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
   "as_of": "2026-07-19T15:32:25+00:00",
   "params": { "max_age_seconds": 180, "role": null },
   "sample": {
