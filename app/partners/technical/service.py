@@ -3,16 +3,19 @@
 The technical team integrates raw data into their own systems, so this module
 exposes fuller rows than the SEO feed — every source, bid/ask, and supplier
 buy/sell quotes — straight from the shared data helpers with minimal reshaping.
+
+Every response is built through `app.shared.refs`, so platform rows, supplier
+rows and the stats header all spell a source/asset/currency the same way.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.shared.data import prices as price_data
+from app.shared.refs import asset_ref, currency_ref, listing, quote_item
 from app.shared.stats import money as _money
 from app.shared.stats import side_stats as _side_stats
 
@@ -52,56 +55,33 @@ async def all_latest_prices(
     for r in rows:
         bid, ask = _bid_ask(r)
         items.append(
-            {
-                "source": {
-                    "slug": r["source_slug"],
-                    "title_en": r["source_title_en"],
-                    "title_fa": r["source_title_fa"],
-                },
-                "asset": {
-                    "slug": r["asset_slug"],
-                    "symbol": r["asset_symbol"],
-                    "std_symbol": r["asset_std_symbol"],
-                    "title_fa": r["asset_title_fa"],
-                    "unit": r["asset_unit"],
-                },
-                "currency": {
-                    "code": r["currency_code"],
-                    "title_fa": r["currency_title_fa"],
-                },
-                "is_single_rate": r["is_single_rate"],
-                "bid": bid,
-                "ask": ask,
-                "crawled_at": r["crawled_at"],
-            }
+            quote_item(r, bid=bid, ask=ask, is_single_rate=r["is_single_rate"])
         )
-    return {
-        "items": items,
-        "count": len(items),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-    }
+    return listing(items)
 
 
 async def supplier_latest(
     session: AsyncSession, *, source: Optional[str] = None, asset: Optional[str] = None
 ) -> dict[str, Any]:
-    """Latest supplier buy/sell quotes."""
+    """Latest supplier quotes, in the same item shape as the platform feed.
+
+    A supplier's `buy_price` (خرید — the supplier buys) is the `bid` and its
+    `sell_price` (فروش — the supplier sells) is the `ask`, exactly the sides the
+    platform feed uses, so one parser reads both feeds; `source.role` is what
+    tells them apart. Suppliers always quote two sides, hence
+    `is_single_rate: false`.
+    """
     rows = await price_data.latest_supplier_prices(session, source=source, asset=asset)
     items = [
-        {
-            "supplier": r["source_slug"],
-            "supplier_title_fa": r["source_title_fa"],
-            "asset": r["asset_slug"],
-            "std_symbol": r["asset_std_symbol"],
-            "unit": r["asset_unit"],
-            "currency": r["currency_code"],
-            "buy_price": r["buy_price"],
-            "sell_price": r["sell_price"],
-            "crawled_at": r["crawled_at"],
-        }
+        quote_item(
+            r,
+            bid=r["buy_price"] if _pos(r["buy_price"]) else None,
+            ask=r["sell_price"] if _pos(r["sell_price"]) else None,
+            is_single_rate=False,
+        )
         for r in rows
     ]
-    return {"items": items, "count": len(items)}
+    return listing(items)
 
 
 async def price_stats(
@@ -127,9 +107,12 @@ async def price_stats(
 
     params = {"max_age_seconds": max_age_seconds, "role": role}
     if not rows:
+        # Nothing matched, so there is no catalog row to describe the asset or
+        # currency — the refs keep their full key set with null values rather
+        # than shrinking to the slug the caller passed.
         return {
-            "asset": {"slug": asset},
-            "currency": {"code": currency},
+            "asset": asset_ref({"asset_slug": asset}),
+            "currency": currency_ref({"currency_code": currency}),
             "as_of": None,
             "params": params,
             "sample": {"total_sources": 0, "included": 0, "excluded": 0,
@@ -140,12 +123,8 @@ async def price_stats(
         }
 
     first = rows[0]
-    asset_meta = {
-        "slug": first["asset_slug"], "symbol": first["asset_symbol"],
-        "std_symbol": first["asset_std_symbol"],
-        "title_fa": first["asset_title_fa"], "unit": first["asset_unit"],
-    }
-    currency_meta = {"code": first["currency_code"], "title_fa": first["currency_title_fa"]}
+    asset_meta = asset_ref(first)
+    currency_meta = currency_ref(first)
 
     # Gerami is handled separately and is deliberately NOT part of the market
     # statistics — pull it out before building the sample.
