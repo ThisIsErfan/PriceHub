@@ -25,7 +25,9 @@ _LATEST_NEWS_SQL = text(
            n.published_at,
            n.crawled_at,
            src.slug     AS source_slug,
-           src.title_en AS source_title_en
+           src.title_en AS source_title_en,
+           src.title_fa AS source_title_fa,
+           src.type     AS source_type
     FROM   news_schm.news_articles n
     JOIN   news_schm.news_sources  src ON src.id = n.source_id
     WHERE  src.deleted = FALSE
