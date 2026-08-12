@@ -200,7 +200,7 @@ SQL
 KEY='ph_live_...'   # the seo key you just minted
 
 curl -s -H "X-API-Key: $KEY" \
-  "https://api.gerami.online/v1/seo/prices/latest?asset=gold-18k" | jq
+  "https://api.gerami.online/v1/seo/price-page" | jq
 
 # wrong partner → 403
 curl -s -H "X-API-Key: $KEY" "https://api.gerami.online/v1/technical/assets" | jq .responseCode

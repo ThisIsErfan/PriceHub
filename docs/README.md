@@ -19,7 +19,7 @@ Everything a consumer of the API needs.
 - [errors.md](api/errors.md) — every error code, when it fires, and how to react.
 - [endpoints-technical.md](api/endpoints-technical.md) — the `technical` partner's endpoints + sample responses.
 - [endpoints-reports.md](api/endpoints-reports.md) — the `reports` partner: competitive report + ready Persian Telegram message.
-- [endpoints-seo.md](api/endpoints-seo.md) — the `seo` partner: price page, featured prices, news.
+- [endpoints-seo.md](api/endpoints-seo.md) — the `seo` partner: the price page (its only endpoint).
 
 ### database/
 - [schema.md](database/schema.md) — `partner_schm` tables, the `partner_api_usr` role, grants, and usage-reporting queries.

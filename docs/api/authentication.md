@@ -10,7 +10,7 @@ leak into proxy logs, browser history, and referrer headers).
 
 ```bash
 curl -H "X-API-Key: ph_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
-     https://api.gerami.online/v1/seo/prices/latest
+     https://api.gerami.online/v1/seo/price-page
 ```
 
 ## Key format

@@ -60,9 +60,6 @@ these objects — never a flattened `asset_title_fa`, never a partial subset:
 Keys are **always present**. An unknown value is `null` — never an absent key —
 so one parser works across every endpoint.
 
-News articles carry a `source` too, but from the separate news-feed catalog, so
-it ends in `type` (`website` · `website_api` · `rss`) instead of `role`.
-
 ### 3. Quotes are always `bid` / `ask`
 
 There is **no bare `price` field** anywhere in the API.
@@ -83,9 +80,9 @@ and `source.role` is what tells them apart.
 
 ## Success payload shapes
 
-### Example — a quote feed (`/v1/technical/prices/platforms/latest`, `/v1/technical/prices/suppliers/latest`, `/v1/seo/prices/latest`)
+### Example — a quote feed (`/v1/technical/prices/platforms/latest`, `/v1/technical/prices/suppliers/latest`)
 
-All three return the identical item shape:
+Both return the identical item shape:
 
 ```json
 {
@@ -113,29 +110,6 @@ All three return the identical item shape:
 
 For a supplier row only the source differs — `"role": "supplier"`, `bid` is its
 خرید and `ask` its فروش, and `is_single_rate` is always `false`.
-
-### Example — `GET /v1/seo/news`
-
-```json
-{
-  "data": {
-    "items": [
-      {
-        "source": { "slug": "yahoo_finance_metals", "title_fa": "یاهو فایننس",
-                    "title_en": "Yahoo Finance", "type": "website_api" },
-        "title": "Gold edges higher as ...",
-        "summary": "Spot gold rose ...",
-        "url": "https://finance.yahoo.com/news/...",
-        "publisher": "Reuters",
-        "image_url": "https://.../thumb.jpg",
-        "published_at": "2026-07-19T07:30:00+00:00"
-      }
-    ],
-    "count": 1,
-    "generated_at": "2026-07-19T08:41:20.123456+00:00"
-  }
-}
-```
 
 ### Example — `GET /v1/seo/price-page`
 

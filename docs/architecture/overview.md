@@ -49,7 +49,7 @@ Why a separate service rather than a router inside the copilot backend:
 
 ## Request lifecycle
 
-For `GET https://api.gerami.online/v1/seo/prices/latest` with header
+For `GET https://api.gerami.online/v1/seo/price-page` with header
 `X-API-Key: ph_live_…`:
 
 1. **TLS proxy** terminates HTTPS and forwards to `127.0.0.1:8100`.

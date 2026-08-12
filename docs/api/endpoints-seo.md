@@ -1,18 +1,15 @@
 # SEO partner endpoints
 
 Base: `https://api.gerami.online/v1/seo`
-Auth: `X-API-Key` for a key on partner `seo`.
-All responses follow the shared standard — nested `source`/`asset`/`currency`
-refs, `bid`/`ask` quotes, `items` + `count` + `generated_at`. See
-[responses.md](responses.md).
+Auth: `X-API-Key` for a key on partner `seo` (scope `prices:read`).
 
-## Endpoints
+`price-page` is the partner's **only** endpoint. Reference implementations of a
+featured-price feed and a news feed live in
+[`service.py`](../../app/partners/seo/service.py) — already on the shared
+response standard — but are deliberately **not enabled**; enabling one means
+adding a route in `router.py` and the matching scope on the key.
 
-- [GET /v1/seo/price-page](#get-price-page) — the talasea gold & coin tables (18k from gerami) · scope `prices:read`
-- [GET /v1/seo/prices/latest](#get-priceslatest) — latest quote for the featured SEO assets · scope `prices:read`
-- [GET /v1/seo/news](#get-news) — recent metals news headlines · scope `news:read`
-
----
+Responses follow the shared standard — see [responses.md](responses.md).
 
 ## `GET /price-page`
 
@@ -85,68 +82,3 @@ Prices/percentages are exact decimal **strings** (never floats — see
 ```bash
 curl -H "X-API-Key: $SEO_KEY" https://api.gerami.online/v1/seo/price-page
 ```
-
----
-
-## `GET /prices/latest`
-
-Latest quote for the assets the SEO team writes about — 18k/24k/melted gold,
-gold & silver ounce, silver 999, and the four coins — from platform and
-reference sources only (supplier quotes are excluded).
-
-**Scope:** `prices:read`
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `asset` | string | – | limit to one asset slug (e.g. `gold-18k`); omit for the whole featured set |
-
-```bash
-curl -H "X-API-Key: $SEO_KEY" "https://api.gerami.online/v1/seo/prices/latest?asset=gold-18k"
-```
-
-`data`:
-```json
-{
-  "items": [
-    {
-      "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" },
-      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
-                    "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-      "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
-      "is_single_rate": true,
-      "bid": "18453900.00000000",
-      "ask": "18453900.00000000",
-      "crawled_at": "2026-07-19T08:41:12+00:00"
-    }
-  ],
-  "count": 1,
-  "generated_at": "2026-07-19T08:41:20.123456+00:00"
-}
-```
-
-Most SEO sources publish a single number rather than a buy/sell split, so it is
-reported as `bid == ask` with `is_single_rate: true` — **for display, read
-`ask`** (فروش).
-
----
-
-## `GET /news`
-
-Recent metals news headlines (title, summary, link, publisher, image, published
-date). Article bodies are not exposed.
-
-**Scope:** `news:read` — a key with only `prices:read` gets `403`.
-
-| Query | Type | Default | Description |
-|-------|------|---------|-------------|
-| `symbol` | string | – | filter by metal symbol slug: `gold`, `silver`, `copper` |
-| `limit` | int (1–50) | `20` | how many articles |
-
-```bash
-curl -H "X-API-Key: $SEO_KEY" "https://api.gerami.online/v1/seo/news?symbol=gold&limit=10"
-```
-
-`data`: `{ items: [ {source, title, summary, url, publisher, image_url, published_at} ], count, generated_at }`
-
-`source` is the news-feed ref — `{slug, title_fa, title_en, type}` — see
-[responses.md](responses.md).
