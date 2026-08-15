@@ -202,11 +202,12 @@ KEY='ph_live_...'   # the seo key you just minted
 curl -s -H "X-API-Key: $KEY" \
   "https://api.gerami.online/v1/seo/price-page" | jq
 
-# wrong partner → 403
-curl -s -H "X-API-Key: $KEY" "https://api.gerami.online/v1/technical/assets" | jq .responseCode
+# wrong partner → 403 (an seo key on a technical route)
+curl -s -H "X-API-Key: $KEY" \
+  "https://api.gerami.online/v1/technical/prices/platforms/latest" | jq .responseCode
 
 # no key → 401
-curl -s "https://api.gerami.online/v1/seo/assets" | jq .responseCode
+curl -s "https://api.gerami.online/v1/seo/price-page" | jq .responseCode
 ```
 
 Then confirm usage was recorded:

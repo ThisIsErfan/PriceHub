@@ -24,6 +24,7 @@ what a customer pays to buy), high→low.
 | `asset` | string | **required** | `gold-18k` \| `silver-999` \| `copper` (any asset slug) |
 | `currency` | string | `irt` | currency **slug** — the lowercase code |
 | `max_age_seconds` | int (30–3600) | `180` | exclude sources not updated within this window (we crawl every ~120s) |
+| `exclude` | string | – | comma-separated source slugs to drop from the report entirely, e.g. `talair_api` (used when a source quotes an asset it shouldn't be ranked on) |
 
 ```bash
 curl -H "X-API-Key: $KEY" \
