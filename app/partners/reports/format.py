@@ -85,7 +85,9 @@ def tehran_stamp(now_utc: datetime) -> str:
 
 def build_message(report: dict[str, Any], now_utc: datetime) -> str:
     """Render the competitive report as a Telegram-ready Persian message."""
-    asset_fa = report["asset"].get("title_fa", report["asset"].get("slug", ""))
+    # The asset ref always carries every key, so an unknown asset has
+    # title_fa=None rather than no key — fall back to the slug on the VALUE.
+    asset_fa = report["asset"].get("title_fa") or report["asset"].get("slug") or ""
     lines: list[str] = []
     lines.append(f"📊 گزارش رقابتی قیمت — {asset_fa} (قیمت خرید کاربر)")
     lines.append(f"🕓 {tehran_stamp(now_utc)}")
@@ -165,8 +167,8 @@ def build_compact(report: dict[str, Any]) -> str:
     Three lines: metal title, Gerami's position, one-line market summary.
     """
     a = report["asset"]
-    slug = a.get("slug", "")
-    fa = _esc(a.get("title_fa", slug))
+    slug = a.get("slug") or ""
+    fa = _esc(a.get("title_fa") or slug)
     lines = [f"{_metal_emoji(slug)} <b>{fa}</b>"]
 
     g = report.get("gerami")
@@ -214,8 +216,8 @@ def build_table(report: dict[str, Any]) -> str:
     price, with Gerami's row flagged 🔸 (marker sits to the LEFT of the box so the
     columns stay perfectly aligned — emojis are ~2 cells wide in monospace)."""
     a = report["asset"]
-    slug = a.get("slug", "")
-    fa = _esc(a.get("title_fa", slug))
+    slug = a.get("slug") or ""
+    fa = _esc(a.get("title_fa") or slug)
     lb = report.get("leaderboard") or []
     g = report.get("gerami")
 

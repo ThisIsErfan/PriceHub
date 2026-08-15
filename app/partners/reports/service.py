@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.partners.reports import format as fmt
 from app.shared.data import prices as price_data
+from app.shared.refs import asset_ref, currency_ref
 from app.shared.stats import money, side_stats
 
 GERAMI = "gerami"
@@ -45,10 +46,17 @@ async def platform_report(
         rows = [r for r in rows if r["source_slug"] not in drop]
 
     params = {"max_age_seconds": max_age_seconds, "sort_by": "user_buy_price (ask/فروش)"}
-    base = {"asset": {"slug": asset}, "currency": {"code": currency}, "params": params}
+    # Same asset/currency refs as every other partner endpoint. With no matching
+    # row there is no catalog data to describe them, so the refs keep their full
+    # key set with null values rather than shrinking to the slug/code passed in.
+    base = {
+        "asset": asset_ref({"asset_slug": asset}),
+        "currency": currency_ref({"currency_code": currency}),
+        "params": params,
+    }
 
     if not rows:
-        stub = {"asset": {"slug": asset}, "gerami": None, "market": None,
+        stub = {"asset": base["asset"], "gerami": None, "market": None,
                 "leaderboard": [], "stamp_fa": fmt.tehran_stamp(now)}
         return {**base, "as_of": None, "gerami": None, "market": None,
                 "leaderboard": [], "stamp_fa": stub["stamp_fa"],
@@ -58,11 +66,8 @@ async def platform_report(
                 "note": "no data for this asset/currency"}
 
     first = rows[0]
-    asset_meta = {
-        "slug": first["asset_slug"], "symbol": first["asset_symbol"],
-        "title_fa": first["asset_title_fa"], "unit": first["asset_unit"],
-    }
-    currency_meta = {"code": first["currency_code"], "title_fa": first["currency_title_fa"]}
+    asset_meta = asset_ref(first)
+    currency_meta = currency_ref(first)
 
     # Fresh, usable-for-buy-price sources make up the leaderboard; stale/no-price
     # are noted separately.

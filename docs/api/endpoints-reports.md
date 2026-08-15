@@ -34,8 +34,11 @@ curl -H "X-API-Key: $KEY" \
 
 ```jsonc
 {
-  "asset": { "slug": "gold-18k", "symbol": "GOLD_18K", "title_fa": "طلای ۱۸ عیار", "unit": "gram" },
-  "currency": { "code": "IRT", "title_fa": "تومان" },
+  // the standard refs — identical to every other partner endpoint
+  "asset": { "slug": "gold-18k", "symbol": "XAU750g", "title_fa": "طلای ۱۸ عیار",
+             "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
+  "currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
+                "title_en": "Iranian Toman", "type": "fiat" },
   "as_of": "2026-07-19T15:32:25+00:00",
   "params": { "max_age_seconds": 180, "sort_by": "user_buy_price (ask/فروش)" },
 
