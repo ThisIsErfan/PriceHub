@@ -1,0 +1,165 @@
+# Asset catalog
+
+Every asset in `price_schm.assets` — what to pass as `?asset=`, what comes back
+as `asset.symbol`, and which currency it is quoted in.
+
+- **You always pass the `slug`** (lowercase): `?asset=gold-18k`.
+- **You get back `asset.symbol`** — the standard instrument code where one has
+  been agreed (`XAU750g`, `XAG999g`, `XCU9999g`), otherwise the internal code
+  (`GOLD_OUNCE`). It is a label, never an input.
+- **Quoted in** is the `?currency=` slug that asset's prices carry. Most are
+  `irt` (تومان); the global ounces and LME copper are `usd`.
+- **Feed** says which endpoint serves it: `platforms` =
+  `/v1/technical/prices/platforms/latest`, `suppliers` =
+  `/v1/technical/prices/suppliers/latest`.
+
+> Rows marked **no feed** exist in the catalog but no source publishes them
+> today, so the API returns an empty list for them. They are listed here so you
+> know the slug is valid but unfed — not missing by mistake.
+
+## Gold
+
+| slug | فارسی | English | unit | `asset.symbol` | quoted in | feed |
+|------|-------|---------|------|----------------|-----------|------|
+| `gold-18k` | طلای ۱۸ عیار | Gold 18K | gram | `XAU750g` | `irt` | platforms (18) + suppliers (4) |
+| `gold-ounce` | اونس جهانی طلا | Gold Global Ounce | ounce | `GOLD_OUNCE` | `usd` | platforms (5) |
+| `gold-24k` | طلای ۲۴ عیار | Gold 24K | gram | `GOLD_24K` | — | **no feed** |
+| `gold-melted` | طلای آب‌شده | Melted Gold (Mazneh) | gram | `GOLD_MELTED` | — | **no feed** |
+
+`gold-18k` is the most widely covered asset in the system — it is what
+`prices/stats` and the competitive report are built around.
+
+## Silver
+
+| slug | فارسی | English | unit | `asset.symbol` | quoted in | feed |
+|------|-------|---------|------|----------------|-----------|------|
+| `silver-999` | نقره ۹۹۹ | Silver 999 | gram | `XAG999g` | `irt` | platforms (11) |
+| `silver-ounce` | اونس جهانی نقره | Silver Global Ounce | ounce | `SILVER_OUNCE` | `usd` | platforms (5) |
+
+## Copper & other metals
+
+| slug | فارسی | English | unit | `asset.symbol` | quoted in | feed |
+|------|-------|---------|------|----------------|-----------|------|
+| `copper` | مس | Copper | gram | `XCU9999g` | `irt` | platforms (5) |
+| `copper-lme` | مس ال‌ام‌ای | LME Copper (3M) | ton | `COPPER_LME` | `usd` | platforms (1) |
+| `platinum-ounce` | انس پلاتین | Platinum Global Ounce | ounce | `PLATINUM_OUNCE` | `usd` | platforms (1) |
+| `palladium-ounce` | انس پالادیوم | Palladium Global Ounce | ounce | `PALLADIUM_OUNCE` | `usd` | platforms (1) |
+
+## Coins
+
+All coin slugs are valid but **unfed** today: the supplier boards that carry
+them keep those lines inactive, so nothing is stored. Enabling one is a
+configuration change on the crawler side, not an API change.
+
+| slug | فارسی | English | unit | `asset.symbol` | quoted in | feed |
+|------|-------|---------|------|----------------|-----------|------|
+| `coin-emami` | سکه امامی | Emami Gold Coin | unit | `COIN_EMAMI` | — | **no feed** |
+| `coin-bahar` | سکه بهار آزادی | Bahar Azadi Gold Coin | unit | `COIN_BAHAR` | — | **no feed** |
+| `coin-half` | نیم سکه | Half Gold Coin | unit | `COIN_HALF` | — | **no feed** |
+| `coin-quarter` | ربع سکه | Quarter Gold Coin | unit | `COIN_QUARTER` | — | **no feed** |
+| `coin-gerami` | سکه گرمی | Gerami Gold Coin | unit | `COIN_GERAMI` | — | **no feed** |
+
+For a coin price page today, use the SEO feed
+([`GET /v1/seo/price-page`](endpoints-seo.md)) — it mirrors a scraped gold/coin
+table and is independent of this catalog.
+
+## Currencies (ارز آزاد)
+
+Free-market rates, all quoted in Toman (`irt`), all `unit`-based. `asset.symbol`
+is the code itself (`USD`, `EUR`, …).
+
+| slug | فارسی | English | feed |
+|------|-------|---------|------|
+| `usd` | دلار | US Dollar | platforms (3) |
+| `eur` | یورو | Euro | platforms (1) |
+| `gbp` | پوند انگلیس | British Pound | platforms (1) |
+| `aed` | درهم | UAE Dirham | platforms (1) |
+| `try` | لیر ترکیه | Turkish Lira | platforms (2) |
+| `omr` | ریال عمان | Omani Rial | platforms (1) |
+| `chf` | فرانک سوئیس | Swiss Franc | platforms (1) |
+| `cny` | یوان چین | Chinese Yuan | platforms (1) |
+| `jpy` | ین ژاپن (۱۰۰ ین) | Japanese Yen — quoted **per 100 JPY** | platforms (1) |
+| `krw` | وون کره جنوبی | South Korean Won | platforms (1) |
+| `cad` | دلار کانادا | Canadian Dollar | platforms (1) |
+| `aud` | دلار استرالیا | Australian Dollar | platforms (1) |
+| `nzd` | دلار نیوزیلند | New Zealand Dollar | platforms (1) |
+| `sgd` | دلار سنگاپور | Singapore Dollar | platforms (1) |
+| `inr` | روپیه هند | Indian Rupee | platforms (1) |
+| `pkr` | روپیه پاکستان | Pakistani Rupee | platforms (1) |
+| `iqd` | دینار عراق | Iraqi Dinar | platforms (1) |
+| `syp` | پوند سوریه | Syrian Pound | platforms (1) |
+| `afn` | افغانی | Afghan Afghani | platforms (1) |
+| `irr` | ریال | Iranian Rial | **no feed** (it is a quote currency, not a traded asset) |
+
+## Crypto
+
+Quoted in Toman (`irt`) unless noted. `unit`-based; `asset.symbol` is the ticker.
+
+| slug | فارسی | English | quoted in |
+|------|-------|---------|-----------|
+| `usdt` | تتر | Tether | `irt` |
+| `btc` | بیت‌کوین | Bitcoin | `irt` and `usdt` |
+| `eth` | اتریوم | Ethereum | `irt` and `usdt` |
+| `ltc` | لایت کوین | Litecoin | `irt` |
+| `bch` | بیت‌کوین کش | Bitcoin Cash | `irt` |
+| `trx` | ترون | Tron | `irt` |
+| `bnb` | بایننس کوین | Binance Coin | `irt` |
+| `xlm` | استلار | Stellar | `irt` |
+| `xrp` | ریپل | Ripple | `irt` |
+| `doge` | دوج کوین | Dogecoin | `irt` |
+| `dash` | دش | Dash | `irt` |
+| `ada` | کاردانو | Cardano | `irt` |
+| `dot` | پولکادات | Polkadot | `irt` |
+| `sol` | سولانا | Solana | `irt` |
+| `avax` | آوالانچ | Avalanche | `irt` |
+| `shib` | شیبا اینو | Shiba Inu | `irt` |
+| `ton` | تون‌کوین | Toncoin | `irt` |
+
+`btc` and `eth` come from two sources on different bases — a Toman quote and a
+Tether quote. They are separate rows, told apart by `currency.slug`; filter with
+`?currency=irt` or `?currency=usdt` if you want only one.
+
+## Commodities
+
+| slug | فارسی | English | unit | quoted in | feed |
+|------|-------|---------|------|-----------|------|
+| `oil-brent` | نفت برنت | Brent Crude Oil | barrel | `usd` | platforms (1) |
+
+## Quote currencies
+
+What can appear in `currency.slug` / be passed as `?currency=`:
+
+| slug | code | symbol | meaning |
+|------|------|--------|---------|
+| `irt` | `IRT` | تومان | Iranian Toman — the default basis for domestic prices |
+| `usd` | `USD` | `$` | US Dollar — global ounces, LME copper, Brent |
+| `usdt` | `USDT` | `₮` | Tether — the crypto pair basis for `btc` / `eth` |
+
+## Filtering by group
+
+`?type=` selects a whole family in one call — the values are
+`gold`, `silver`, `copper`, `coin`, `platinum`, `palladium`, `currency`,
+`crypto`, `commodity`:
+
+```bash
+# every gold row (18k + ounce), every source
+curl -H "X-API-Key: $KEY" \
+  "https://api.gerami.online/v1/technical/prices/platforms/latest?type=gold"
+
+# a hand-picked set
+curl -H "X-API-Key: $KEY" \
+  ".../prices/platforms/latest?assets=gold-18k,silver-999,copper"
+```
+
+## Checking what is live right now
+
+This page describes the catalog; the API is the live truth. One call lists every
+(asset, currency) pair currently being served:
+
+```bash
+curl -s -H "X-API-Key: $KEY" \
+  "https://api.gerami.online/v1/technical/prices/platforms/latest" \
+  | jq -r '.data.items[] | "\(.asset.slug)\t\(.currency.slug)"' | sort -u
+```
+
+Source counts above are as of this writing and change as crawlers are added.

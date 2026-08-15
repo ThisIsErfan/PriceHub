@@ -42,12 +42,14 @@ Both are **lowercase slugs**, so a query string never mixes cases:
 
 | Input | What to pass | Examples |
 |-------|--------------|----------|
-| `asset` | `assets.slug` | `gold-18k`, `gold-24k`, `gold-ounce`, `silver-999`, `silver-ounce`, `copper`, `coin-emami`, `coin-bahar` |
-| `currency` | `currencies.slug` — the lowercase code | `irt` (تومان), `irr`, `usd` |
+| `asset` | `assets.slug` | `gold-18k`, `gold-ounce`, `silver-999`, `silver-ounce`, `copper`, `copper-lme`, `usd`, `btc` — [full catalog](assets.md) |
+| `currency` | `currencies.slug` — the lowercase code | `irt` (تومان), `usd`, `usdt` |
 | `source` | `sources.slug` | `gerami`, `tgju`, `daric`, `goldika`, `zariran` |
-| `type` | `assets.type` | `gold`, `silver`, `copper`, `coin`, `currency`, `crypto` |
+| `type` | `assets.type` | `gold`, `silver`, `copper`, `coin`, `platinum`, `palladium`, `currency`, `crypto`, `commodity` |
 
 An uppercase currency (`IRT`) still resolves, but `irt` is the documented form.
+Every asset slug, with its unit, symbol and quote currency, is listed in
+[assets.md](assets.md).
 
 Most assets are quoted in `irt`; the global ounces (`gold-ounce`,
 `silver-ounce`, `platinum-ounce`, `palladium-ounce`), `copper-lme` and
