@@ -2,6 +2,7 @@
 
 Base: `https://api.gerami.online/v1/seo`
 Auth: `X-API-Key` for a key on partner `seo` (scope `prices:read`).
+One-page index of every endpoint: [endpoints.md](endpoints.md).
 
 `price-page` is the partner's **only** endpoint. Reference implementations of a
 featured-price feed and a news feed live in

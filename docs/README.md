@@ -12,6 +12,7 @@ Understand the system before changing it.
 
 ### api/
 Everything a consumer of the API needs.
+- [endpoints.md](api/endpoints.md) — **the index**: every endpoint on one page, its parameters, and which one to call for what. Start here.
 - [health.md](api/health.md) — public liveness (`/health`) & readiness (`/health/ready`) checks — probe before calling.
 - [authentication.md](api/authentication.md) — API keys, the `X-API-Key` header, scopes, tenant isolation.
 - [responses.md](api/responses.md) — **the response standard**: the envelope, the shared source/asset/currency refs, bid/ask, and example payloads.

@@ -43,6 +43,7 @@ Everything is under [`docs/`](docs/), grouped by topic:
 | Area | Start here |
 |------|------------|
 | Architecture & Redis role | [docs/architecture/](docs/architecture/) |
+| **Every endpoint on one page** | [docs/api/endpoints.md](docs/api/endpoints.md) |
 | API (auth, responses, errors, rate limits, per-partner endpoints) | [docs/api/](docs/api/) |
 | Database (partner_schm, roles, grants) | [docs/database/](docs/database/) |
 | **Step-by-step setup** (server + GitHub Actions + VPS + nginx) | [docs/operations/setup-guide.md](docs/operations/setup-guide.md) |

@@ -3,6 +3,7 @@
 Base: `https://api.gerami.online/v1/reports`
 Auth: `X-API-Key` for a key on partner `reports`.
 All GET. Served by [`app/partners/reports/`](../../app/partners/reports/).
+One-page index of every endpoint: [endpoints.md](endpoints.md).
 
 This is a **reporting** feed for senior management (not operational). It is meant
 to be fetched by an **Airflow DAG** every ~2 minutes and posted to a private

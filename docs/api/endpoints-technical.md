@@ -3,6 +3,7 @@
 Base: `https://api.gerami.online/v1/technical`
 Auth: `X-API-Key` for a key on partner `technical`.
 All GET. See [responses.md](responses.md) for the envelope and full examples.
+One-page index of every endpoint: [endpoints.md](endpoints.md).
 
 Served by the code module [`app/partners/technical/`](../../app/partners/technical/).
 This feed returns fuller rows than `seo` (every source, bid/ask, supplier quotes)
