@@ -10,8 +10,8 @@ Every key is always present: an unknown value is ``null``, not an absent key, so
 a consumer can rely on one fixed shape.
 
     source   {slug, title_fa, title_en, role}                 role: platform|reference|supplier
-    asset    {slug, symbol, std_symbol, title_fa, title_en, type, unit}
-    currency {code, title_fa, title_en, type}                 type: fiat|crypto
+    asset    {slug, symbol, title_fa, title_en, type, unit}    symbol: the STANDARD code
+    currency {code, symbol, title_fa, title_en, type}          type: fiat|crypto
 
 The helpers read a row straight from the shared queries in ``app.shared.data``,
 which name their columns ``source_slug`` / ``asset_title_fa`` / ``currency_code``
@@ -42,14 +42,19 @@ def asset_ref(row: Mapping[str, Any], *, prefix: str = "asset_") -> dict[str, An
     """The canonical asset object (`assets` catalog).
 
     `slug` is the input key everywhere (`?asset=gold-18k`); `symbol` is the
-    internal join key; `std_symbol` is the standard instrument code carrying
-    purity and unit (`XAU750g`, `XAG999g`, `XCU9999g`), `null` for assets
-    outside that scheme.
+    STANDARD instrument code carrying purity and unit (`XAU750g`, `XAG999g`,
+    `XCU9999g`) — i.e. the DB's `assets.std_symbol`, not the internal join key.
+    There is no separate `std_symbol` field: the standard code IS the symbol a
+    partner sees.
+
+    Assets for which no standard code has been agreed yet (24K, melted, ounces,
+    coins, currencies) have `std_symbol` NULL in the catalog; rather than
+    reporting `symbol: null` for them, we fall back to the internal code
+    (`GOLD_24K`) so the field is always a usable identifier.
     """
     return {
         "slug": row.get(f"{prefix}slug"),
-        "symbol": row.get(f"{prefix}symbol"),
-        "std_symbol": row.get(f"{prefix}std_symbol"),
+        "symbol": row.get(f"{prefix}std_symbol") or row.get(f"{prefix}symbol"),
         "title_fa": row.get(f"{prefix}title_fa"),
         "title_en": row.get(f"{prefix}title_en"),
         "type": row.get(f"{prefix}type"),
@@ -60,11 +65,13 @@ def asset_ref(row: Mapping[str, Any], *, prefix: str = "asset_") -> dict[str, An
 def currency_ref(row: Mapping[str, Any], *, prefix: str = "currency_") -> dict[str, Any]:
     """The canonical currency object (`currencies` catalog).
 
-    `code` is the standard symbol the quote is denominated in (`IRT`, `IRR`,
-    `USD`); `type` is its class (`fiat` | `crypto`).
+    `code` is the standard currency code the quote is denominated in (`IRT`,
+    `IRR`, `USD`); `symbol` is its display sign (`T`, `﷼`, `$`), `null` when the
+    catalog has none; `type` is its class (`fiat` | `crypto`).
     """
     return {
         "code": row.get(f"{prefix}code"),
+        "symbol": row.get(f"{prefix}symbol"),
         "title_fa": row.get(f"{prefix}title_fa"),
         "title_en": row.get(f"{prefix}title_en"),
         "type": row.get(f"{prefix}type"),

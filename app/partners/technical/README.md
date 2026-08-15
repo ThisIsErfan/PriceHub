@@ -18,8 +18,11 @@ ask`). `stats` summarizes each source's clean `bid` and `ask` **separately**
 (the `-1` sentinel stripped; a single-rate source counts on both sides), with
 stale sources and Gerami excluded from the sample.
 
-Every asset in the response carries `std_symbol` — the standard/ISO metal code
-(`XAU`/`XAG`/`XCU`), `null` when absent. Inputs stay the slug (e.g. `gold-18k`).
+Every asset in the response carries `asset.symbol` — the standard instrument
+code, purity + unit qualified (`XAU750g`/`XAG999g`/`XCU9999g`); assets with no
+standard code agreed yet fall back to the internal code (`GOLD_24K`). Inputs
+stay the slug (e.g. `gold-18k`). `currency` carries both its `code` (`IRT`) and
+its display `symbol` (`T`).
 
 ## Add / change technical endpoints
 

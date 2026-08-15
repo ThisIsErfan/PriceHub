@@ -12,7 +12,9 @@ Every response follows the shared standard: nested `source` / `asset` /
 `currency` refs with fixed keys, `bid`/`ask` quotes, and `items` + `count` +
 `generated_at` on every list — see [responses.md](responses.md). Inputs are
 unchanged: you still pass the **slug** (e.g. `gold-18k`) as `asset`, and each
-asset carries the standard code `std_symbol` (`XAU750g`, `XAG999g`, `XCU9999g`).
+asset reports the standard code in `asset.symbol` (`XAU750g`, `XAG999g`,
+`XCU9999g`); `currency` carries its `code` (`IRT`) plus its display `symbol`
+(`T`), and both refs carry `title_fa` and `title_en`.
 
 ## Endpoints
 
@@ -56,9 +58,10 @@ curl -H "X-API-Key: $KEY" \
   "items": [
     {
       "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" },
-      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+      "asset":    { "slug": "gold-18k", "symbol": "XAU750g",
                     "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-      "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
+      "currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
+                    "title_en": "Iranian Toman", "type": "fiat" },
       "is_single_rate": false,
       "bid": "3820000.00000000",
       "ask": "3830000.00000000",
@@ -66,9 +69,10 @@ curl -H "X-API-Key: $KEY" \
     },
     {
       "source":   { "slug": "tgju", "title_fa": "طلا و جواهر", "title_en": "TGJU", "role": "platform" },
-      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+      "asset":    { "slug": "gold-18k", "symbol": "XAU750g",
                     "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-      "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
+      "currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
+                    "title_en": "Iranian Toman", "type": "fiat" },
       "is_single_rate": true,
       "bid": "18453900.00000000",
       "ask": "18453900.00000000",
@@ -82,8 +86,9 @@ curl -H "X-API-Key: $KEY" \
 
 > Differences from the copilot `prices/latest`: the bare `price` field is dropped
 > (single-rate rows report `bid == ask` instead), and the refs are the standard
-> ones — `source.role`, `asset.std_symbol`/`type`, `currency.type` are all
-> included. `is_single_rate` is otherwise the same.
+> ones — `source.role`, `asset.symbol` (the standard code)/`type`,
+> `currency.symbol`/`type` are all included. `is_single_rate` is otherwise the
+> same.
 
 ---
 
@@ -113,9 +118,10 @@ quote two sides, so `is_single_rate` is always `false`.
   "items": [
     {
       "source":   { "slug": "zariran", "title_fa": "زر ایران", "title_en": "Zariran", "role": "supplier" },
-      "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+      "asset":    { "slug": "gold-18k", "symbol": "XAU750g",
                     "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-      "currency": { "code": "IRR", "title_fa": "ریال ایران", "title_en": "Iranian Rial", "type": "fiat" },
+      "currency": { "code": "IRR", "symbol": "﷼", "title_fa": "ریال ایران",
+                    "title_en": "Iranian Rial", "type": "fiat" },
       "is_single_rate": false,
       "bid": "38100000.00000000",
       "ask": "38300000.00000000",
@@ -170,9 +176,10 @@ over its own per-source values.
 `data`:
 ```json
 {
-  "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+  "asset":    { "slug": "gold-18k", "symbol": "XAU750g",
                 "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-  "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
+  "currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
+                "title_en": "Iranian Toman", "type": "fiat" },
   "as_of": "2026-07-19T15:32:25+00:00",
   "params": { "max_age_seconds": 180, "role": null },
   "sample": {

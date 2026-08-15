@@ -39,6 +39,7 @@ _LATEST_SQL = text(
            a.type      AS asset_type,
            a.unit      AS asset_unit,
            c.code      AS currency_code,
+           c.symbol    AS currency_symbol,
            c.title_fa  AS currency_title_fa,
            c.title_en  AS currency_title_en,
            c.type      AS currency_type,
@@ -111,6 +112,7 @@ _SUPPLIER_LATEST_SQL = text(
            a.type      AS asset_type,
            a.unit      AS asset_unit,
            c.code      AS currency_code,
+           c.symbol    AS currency_symbol,
            c.title_fa  AS currency_title_fa,
            c.title_en  AS currency_title_en,
            c.type      AS currency_type,
@@ -152,6 +154,7 @@ _STATS_ROWS_SQL = text(
            a.type      AS asset_type,
            a.unit      AS asset_unit,
            c.code      AS currency_code,
+           c.symbol    AS currency_symbol,
            c.title_fa  AS currency_title_fa,
            c.title_en  AS currency_title_en,
            c.type      AS currency_type,
@@ -213,7 +216,7 @@ async def latest_supplier_prices(
 
 _ASSETS_SQL = text(
     """
-    SELECT slug, symbol, title_en, title_fa, type, unit, purity
+    SELECT slug, symbol, std_symbol, title_en, title_fa, type, unit, purity
     FROM   assets
     WHERE  deleted = FALSE
       AND  (CAST(:type AS text) IS NULL OR type = :type)

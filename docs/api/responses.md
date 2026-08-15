@@ -43,19 +43,23 @@ these objects — never a flattened `asset_title_fa`, never a partial subset:
 
 ```json
 "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" }
-"asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+"asset":    { "slug": "gold-18k", "symbol": "XAU750g",
               "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" }
-"currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" }
+"currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
+              "title_en": "Iranian Toman", "type": "fiat" }
 ```
 
 | Field | Meaning |
 |-------|---------|
 | `source.role` | `platform` · `reference` · `supplier` — what kind of quote this is |
 | `asset.slug` | the **input** key: `?asset=gold-18k` |
-| `asset.symbol` | internal join key the crawlers map to (`GOLD_18K`) |
-| `asset.std_symbol` | the standard instrument code, purity + unit qualified — `XAU750g` (gold 750, per gram), `XAG999g` (silver 999), `XCU9999g` (copper 9999). `null` for assets outside that set |
-| `currency.code` | the standard currency symbol the quote is denominated in (`IRT`, `IRR`, `USD`) |
+| `asset.symbol` | the **standard** instrument code, purity + unit qualified — `XAU750g` (gold 750, per gram), `XAG999g` (silver 999), `XCU9999g` (copper 9999). Assets with no standard code agreed yet fall back to the internal code (`GOLD_24K`, `COIN_EMAMI`) so the field is always a usable identifier |
+| `currency.code` | the standard currency code the quote is denominated in (`IRT`, `IRR`, `USD`) |
+| `currency.symbol` | its display sign (`T`, `﷼`, `$`), `null` when the catalog has none |
 | `currency.type` | `fiat` · `crypto` |
+
+Both `asset` and `currency` carry `title_fa` **and** `title_en`, like every other
+ref in the API.
 
 Keys are **always present**. An unknown value is `null` — never an absent key —
 so one parser works across every endpoint.
@@ -93,9 +97,10 @@ Both return the identical item shape:
     "items": [
       {
         "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" },
-        "asset":    { "slug": "gold-18k", "symbol": "GOLD_18K", "std_symbol": "XAU750g",
+        "asset":    { "slug": "gold-18k", "symbol": "XAU750g",
                       "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-        "currency": { "code": "IRT", "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
+        "currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
+                      "title_en": "Iranian Toman", "type": "fiat" },
         "is_single_rate": false,
         "bid": "3820000.00000000",
         "ask": "3830000.00000000",
