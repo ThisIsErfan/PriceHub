@@ -45,8 +45,8 @@ these objects — never a flattened `asset_title_fa`, never a partial subset:
 "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" }
 "asset":    { "slug": "gold-18k", "symbol": "XAU750g",
               "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" }
-"currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
-              "title_en": "Iranian Toman", "type": "fiat" }
+"currency": { "slug": "irt", "code": "IRT", "symbol": "تومان",
+              "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" }
 ```
 
 | Field | Meaning |
@@ -54,8 +54,9 @@ these objects — never a flattened `asset_title_fa`, never a partial subset:
 | `source.role` | `platform` · `reference` · `supplier` — what kind of quote this is |
 | `asset.slug` | the **input** key: `?asset=gold-18k` |
 | `asset.symbol` | the **standard** instrument code, purity + unit qualified — `XAU750g` (gold 750, per gram), `XAG999g` (silver 999), `XCU9999g` (copper 9999). Assets with no standard code agreed yet fall back to the internal code (`GOLD_24K`, `COIN_EMAMI`) so the field is always a usable identifier |
+| `currency.slug` | the **input** key: `?currency=irt` — the lowercase `code`, so both inputs are spelled the same way (an uppercase `IRT` is still accepted) |
 | `currency.code` | the standard currency code the quote is denominated in (`IRT`, `IRR`, `USD`) |
-| `currency.symbol` | its display sign (`T`, `﷼`, `$`), `null` when the catalog has none |
+| `currency.symbol` | its display sign (`تومان`, `﷼`, `$`), `null` when the catalog has none |
 | `currency.type` | `fiat` · `crypto` |
 
 Both `asset` and `currency` carry `title_fa` **and** `title_en`, like every other
@@ -99,8 +100,8 @@ Both return the identical item shape:
         "source":   { "slug": "gerami", "title_fa": "گرمی", "title_en": "Gerami", "role": "platform" },
         "asset":    { "slug": "gold-18k", "symbol": "XAU750g",
                       "title_fa": "طلای ۱۸ عیار", "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-        "currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
-                      "title_en": "Iranian Toman", "type": "fiat" },
+        "currency": { "slug": "irt", "code": "IRT", "symbol": "تومان",
+                      "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
         "is_single_rate": false,
         "bid": "3820000.00000000",
         "ask": "3830000.00000000",
@@ -149,10 +150,11 @@ standard `source` ref naming which producer it came from:
 }
 ```
 
-### Example — a single-object endpoint (`/v1/technical/prices/stats`)
+### Example — `/v1/technical/prices/stats`
 
-Not a list, so no `items`/`count`; the same `asset` / `currency` refs head the
-object. See [endpoints-technical.md](endpoints-technical.md).
+A list like the others: one item per (asset, currency) pair, each headed by the
+same `asset` / `currency` refs, with the shared `params` as list metadata. See
+[endpoints-technical.md](endpoints-technical.md).
 
 ## Error payload
 

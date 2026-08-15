@@ -30,7 +30,7 @@ _auth = Depends(require_partner(SLUG, scope="reports:read"))
 async def platform_compare(
     _ctx=_auth,
     asset: str = Query(..., description="Asset slug: gold-18k | silver-999 | copper (required)"),
-    currency: str = Query("IRT", description="Currency code (default IRT)"),
+    currency: str = Query("irt", description="Currency slug — the lowercase code (default irt)"),
     max_age_seconds: int = Query(
         180, ge=30, le=3600,
         description="Exclude sources not updated within this many seconds (default 180 = 3min)",

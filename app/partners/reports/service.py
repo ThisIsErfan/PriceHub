@@ -47,11 +47,12 @@ async def platform_report(
 
     params = {"max_age_seconds": max_age_seconds, "sort_by": "user_buy_price (ask/فروش)"}
     # Same asset/currency refs as every other partner endpoint. With no matching
-    # row there is no catalog data to describe them, so the refs keep their full
-    # key set with null values rather than shrinking to the slug/code passed in.
+    # row there is no catalog data to describe them, so only the input keys are
+    # filled — the refs keep their full key set with null values rather than
+    # shrinking to what the caller passed.
     base = {
         "asset": asset_ref({"asset_slug": asset}),
-        "currency": currency_ref({"currency_code": currency}),
+        "currency": currency_ref({"currency_slug": (currency or "").lower()}),
         "params": params,
     }
 

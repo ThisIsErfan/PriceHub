@@ -87,41 +87,52 @@ async def supplier_latest(
 async def price_stats(
     session: AsyncSession,
     *,
-    asset: str,
-    currency: str,
+    asset: Optional[str] = None,
+    currency: Optional[str] = None,
     max_age_seconds: int = 180,
     role: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Cross-source statistical summary for one (asset, currency), computed
-    SEPARATELY for bid (خرید) and ask (فروش) — each over its own per-source data.
+    """Cross-source statistical summary per (asset, currency).
+
+    Both filters are optional and behave like the quote feeds: omit `asset` to
+    get every asset, omit `currency` to get every currency it is quoted in. The
+    result is therefore a standard list — one item per (asset, currency) pair,
+    each the same summary object a single pair returns.
+
+    A statistic is only meaningful within one pair (you cannot average a Toman
+    gram price with a Dollar ounce price), so the pair — not the asset — is what
+    an item is keyed on: `gold-ounce` in USD and `gold-18k` in IRT are two items.
+    """
+    rows = await price_data.latest_clean_for_stats(
+        session, asset=asset, currency=currency, role=role
+    )
+    params = {"max_age_seconds": max_age_seconds, "role": role}
+
+    # Group by (asset, currency); the query orders by asset/currency/source, so
+    # the groups (and the sources within them) come out in a stable order. No
+    # match at all is simply an empty list — `count: 0` says it.
+    groups: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
+    for r in rows:
+        groups.setdefault((r["asset_slug"], r["currency_code"]), []).append(r)
+
+    return listing(
+        [_pair_stats(g, max_age_seconds) for g in groups.values()],
+        params=params,
+    )
+
+
+def _pair_stats(rows: list[dict[str, Any]], max_age_seconds: int) -> dict[str, Any]:
+    """The summary for ONE (asset, currency), computed SEPARATELY for bid (خرید)
+    and ask (فروش) — each over its own per-source data.
 
     Each source contributes a clean bid and ask (the "-1" sentinel is stripped;
     a single-rate source's price counts as both sides). Sources whose latest
     sample is older than `max_age_seconds` (default 180s — we crawl every 120s,
     so >3min = stale) are EXCLUDED, as are sources with no usable quote. Gerami is
     excluded from the stats and surfaced separately for reference.
+
+    `rows` is never empty: it is one non-empty group built by `price_stats`.
     """
-    rows = await price_data.latest_clean_for_stats(
-        session, asset=asset, currency=currency, role=role
-    )
-
-    params = {"max_age_seconds": max_age_seconds, "role": role}
-    if not rows:
-        # Nothing matched, so there is no catalog row to describe the asset or
-        # currency — the refs keep their full key set with null values rather
-        # than shrinking to the slug the caller passed.
-        return {
-            "asset": asset_ref({"asset_slug": asset}),
-            "currency": currency_ref({"currency_code": currency}),
-            "as_of": None,
-            "params": params,
-            "sample": {"total_sources": 0, "included": 0, "excluded": 0,
-                       "included_sources": [], "excluded_sources": []},
-            "stats": None,
-            "gerami": None,
-            "message": "no data for this asset/currency",
-        }
-
     first = rows[0]
     asset_meta = asset_ref(first)
     currency_meta = currency_ref(first)
@@ -188,7 +199,6 @@ async def price_stats(
         "asset": asset_meta,
         "currency": currency_meta,
         "as_of": as_of,
-        "params": params,
         "sample": {
             "total_sources": len(sample_rows),
             "included": len(included),

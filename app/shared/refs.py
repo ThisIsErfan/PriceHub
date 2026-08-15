@@ -11,7 +11,10 @@ a consumer can rely on one fixed shape.
 
     source   {slug, title_fa, title_en, role}                 role: platform|reference|supplier
     asset    {slug, symbol, title_fa, title_en, type, unit}    symbol: the STANDARD code
-    currency {code, symbol, title_fa, title_en, type}          type: fiat|crypto
+    currency {slug, code, symbol, title_fa, title_en, type}    type: fiat|crypto
+
+`asset.slug` and `currency.slug` are the two input keys — both lowercase, so a
+query string never mixes cases (``?asset=gold-18k&currency=irt``).
 
 The helpers read a row straight from the shared queries in ``app.shared.data``,
 which name their columns ``source_slug`` / ``asset_title_fa`` / ``currency_code``
@@ -65,11 +68,14 @@ def asset_ref(row: Mapping[str, Any], *, prefix: str = "asset_") -> dict[str, An
 def currency_ref(row: Mapping[str, Any], *, prefix: str = "currency_") -> dict[str, Any]:
     """The canonical currency object (`currencies` catalog).
 
-    `code` is the standard currency code the quote is denominated in (`IRT`,
-    `IRR`, `USD`); `symbol` is its display sign (`T`, `﷼`, `$`), `null` when the
-    catalog has none; `type` is its class (`fiat` | `crypto`).
+    `slug` is the input key (`?currency=irt`) — the lowercase form of `code`,
+    mirroring `asset.slug`; `code` is the standard currency code the quote is
+    denominated in (`IRT`, `IRR`, `USD`); `symbol` is its display sign (`تومان`,
+    `﷼`, `$`), `null` when the catalog has none; `type` is its class
+    (`fiat` | `crypto`).
     """
     return {
+        "slug": row.get(f"{prefix}slug"),
         "code": row.get(f"{prefix}code"),
         "symbol": row.get(f"{prefix}symbol"),
         "title_fa": row.get(f"{prefix}title_fa"),

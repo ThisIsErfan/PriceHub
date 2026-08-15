@@ -22,12 +22,12 @@ what a customer pays to buy), high→low.
 | Query | Type | Default | Description |
 |-------|------|---------|-------------|
 | `asset` | string | **required** | `gold-18k` \| `silver-999` \| `copper` (any asset slug) |
-| `currency` | string | `IRT` | currency code |
+| `currency` | string | `irt` | currency **slug** — the lowercase code |
 | `max_age_seconds` | int (30–3600) | `180` | exclude sources not updated within this window (we crawl every ~120s) |
 
 ```bash
 curl -H "X-API-Key: $KEY" \
-  "https://api.gerami.online/v1/reports/platform-compare?asset=gold-18k&currency=IRT"
+  "https://api.gerami.online/v1/reports/platform-compare?asset=gold-18k&currency=irt"
 ```
 
 ### `data`
@@ -37,8 +37,8 @@ curl -H "X-API-Key: $KEY" \
   // the standard refs — identical to every other partner endpoint
   "asset": { "slug": "gold-18k", "symbol": "XAU750g", "title_fa": "طلای ۱۸ عیار",
              "title_en": "Gold 18K", "type": "gold", "unit": "gram" },
-  "currency": { "code": "IRT", "symbol": "T", "title_fa": "تومان ایران",
-                "title_en": "Iranian Toman", "type": "fiat" },
+  "currency": { "slug": "irt", "code": "IRT", "symbol": "تومان",
+                "title_fa": "تومان ایران", "title_en": "Iranian Toman", "type": "fiat" },
   "as_of": "2026-07-19T15:32:25+00:00",
   "params": { "max_age_seconds": 180, "sort_by": "user_buy_price (ask/فروش)" },
 
@@ -135,7 +135,7 @@ Field notes:
 
 The DAG just needs to GET this endpoint and post `data.message`:
 ```python
-r = requests.get(URL, headers={"X-API-Key": KEY}, params={"asset": "gold-18k", "currency": "IRT"})
+r = requests.get(URL, headers={"X-API-Key": KEY}, params={"asset": "gold-18k", "currency": "irt"})
 text = r.json()["data"]["message"]
 # send `text` to the private channel (through the v2ray proxy)
 ```

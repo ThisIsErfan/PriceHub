@@ -23,6 +23,9 @@ _auth_prices = Depends(require_partner(SLUG, scope="prices:read"))
 # Shared help text for the `asset` input — the same slug as today; the standard
 # symbol (XAU/XAG/XCU) is returned in the response, not required as input.
 _ASSET_DESC = "Asset slug, e.g. gold-18k (طلا), silver-999 (نقره), copper (مس)"
+# Currency input is the slug too — the lowercase code (irt, irr, usd), so both
+# inputs are spelled the same way. An uppercase code still matches.
+_CURRENCY_DESC = "Currency slug (lowercase code), e.g. irt, irr, usd"
 
 
 @router.get(
@@ -33,7 +36,7 @@ async def platforms_latest(
     _ctx=_auth_prices,
     source: Optional[str] = Query(None, description="Filter by platform (source) slug"),
     asset: Optional[str] = Query(None, description=f"Filter by {_ASSET_DESC}"),
-    currency: Optional[str] = Query(None, description="Filter by currency code, e.g. IRT, IRR"),
+    currency: Optional[str] = Query(None, description=f"Filter by {_CURRENCY_DESC}"),
     type: Optional[str] = Query(None, description="Filter by asset type"),
     assets: Optional[str] = Query(None, description="Filter by a comma-separated list of asset slugs"),
     session: AsyncSession = Depends(get_session),
@@ -57,12 +60,12 @@ async def suppliers_latest(
 
 @router.get(
     "/prices/stats",
-    summary="Cross-source statistical summary (mean/median/2σ/3σ trimmed/min/max) for one asset",
+    summary="Cross-source statistical summary (mean/median/2σ/3σ trimmed/min/max) per asset/currency",
 )
 async def prices_stats(
     _ctx=_auth_prices,
-    asset: str = Query(..., description=f"{_ASSET_DESC} (required)"),
-    currency: str = Query(..., description="Currency code, e.g. IRT (required)"),
+    asset: Optional[str] = Query(None, description=f"Filter by {_ASSET_DESC}; omit for every asset"),
+    currency: Optional[str] = Query(None, description=f"Filter by {_CURRENCY_DESC}; omit for every currency"),
     max_age_seconds: int = Query(
         180, ge=30, le=3600,
         description="Exclude sources not updated within this many seconds (default 180 = 3min)",

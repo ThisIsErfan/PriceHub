@@ -39,6 +39,7 @@ _LATEST_SQL = text(
            a.type      AS asset_type,
            a.unit      AS asset_unit,
            c.code      AS currency_code,
+           c.slug      AS currency_slug,
            c.symbol    AS currency_symbol,
            c.title_fa  AS currency_title_fa,
            c.title_en  AS currency_title_en,
@@ -61,11 +62,11 @@ _LATEST_SQL = text(
       AND  c.deleted = FALSE
       AND  (CAST(:source   AS text) IS NULL OR s.slug = :source)
       AND  (CAST(:asset    AS text) IS NULL OR a.slug = :asset)
-      AND  (CAST(:currency AS text) IS NULL OR c.code = :currency)
+      AND  (CAST(:currency AS text) IS NULL OR c.slug = lower(:currency))
       AND  (CAST(:type     AS text) IS NULL OR a.type = :type)
       AND  (CAST(:assets   AS text) IS NULL
             OR a.slug = ANY(string_to_array(:assets, ',')))
-    ORDER  BY s.slug, a.slug, c.code
+    ORDER  BY s.slug, a.slug, c.slug
     """
 )
 
@@ -112,6 +113,7 @@ _SUPPLIER_LATEST_SQL = text(
            a.type      AS asset_type,
            a.unit      AS asset_unit,
            c.code      AS currency_code,
+           c.slug      AS currency_slug,
            c.symbol    AS currency_symbol,
            c.title_fa  AS currency_title_fa,
            c.title_en  AS currency_title_en,
@@ -154,6 +156,7 @@ _STATS_ROWS_SQL = text(
            a.type      AS asset_type,
            a.unit      AS asset_unit,
            c.code      AS currency_code,
+           c.slug      AS currency_slug,
            c.symbol    AS currency_symbol,
            c.title_fa  AS currency_title_fa,
            c.title_en  AS currency_title_en,
@@ -172,10 +175,10 @@ _STATS_ROWS_SQL = text(
     WHERE  s.deleted = FALSE
       AND  a.deleted = FALSE
       AND  c.deleted = FALSE
-      AND  a.slug = :asset
-      AND  c.code = :currency
-      AND  (CAST(:role AS text) IS NULL OR s.role = :role)
-    ORDER  BY s.slug
+      AND  (CAST(:asset    AS text) IS NULL OR a.slug = :asset)
+      AND  (CAST(:currency AS text) IS NULL OR c.slug = lower(:currency))
+      AND  (CAST(:role     AS text) IS NULL OR s.role = :role)
+    ORDER  BY a.slug, c.slug, s.slug
     """
 )
 
@@ -183,12 +186,16 @@ _STATS_ROWS_SQL = text(
 async def latest_clean_for_stats(
     session: AsyncSession,
     *,
-    asset: str,
-    currency: str,
+    asset: Optional[str] = None,
+    currency: Optional[str] = None,
     role: Optional[str] = None,
 ) -> list[dict[str, Any]]:
-    """One row per source for (asset, currency) with clean `bid_clean`/`ask_clean`
-    + `age_seconds`.
+    """One row per source for each (asset, currency) with clean `bid_clean` /
+    `ask_clean` + `age_seconds`.
+
+    Both filters are optional: omit them to get every (asset, currency) pair
+    that has a latest quote, ordered so rows of one pair arrive together
+    (`asset`, then `currency`, then `source`) — the caller groups on that.
 
     Feeds the statistics endpoint. Either side may be None when a source has no
     usable quote for it — the caller skips those per side.
