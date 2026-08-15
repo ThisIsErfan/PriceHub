@@ -13,14 +13,16 @@ as `asset.symbol`, and which currency it is quoted in.
   `/v1/technical/prices/platforms/latest`, `suppliers` =
   `/v1/technical/prices/suppliers/latest`.
 
-- **Sources** is how many distinct sources published a *usable, fresh* quote for
-  that asset in a live check on **2026-08-15** (fresh = within the hour, the
-  `-1` "no quote" sentinel excluded). It moves as crawlers are added or a site
-  goes down — treat it as "roughly how much cross-source depth to expect", not
-  a guarantee.
+- **Sources** is how many distinct sources delivered a *usable* quote for that
+  asset in a live check on **2026-08-15** (the `-1` "no quote" sentinel
+  excluded). It moves as crawlers are added or a site goes down — treat it as
+  "roughly how much cross-source depth to expect", not a guarantee.
 
-Almost every source refreshes every **1–2 minutes**. The one exception is
-`copper-lme`, crawled **hourly** — see the note under its row.
+**Every source counted here is live.** Most publish every **1–2 minutes**;
+`copper-lme` is on an **hourly** cycle — an active feed on a slower schedule,
+not a lagging one (the LME 3-month contract simply does not move minute to
+minute). Read `crawled_at` on any item to see how old that particular number
+is.
 
 > Rows marked **no feed** exist in the catalog but no source publishes them
 > today, so the API returns an empty list for them. They are listed here so you
@@ -58,10 +60,11 @@ ounces 4 each, and most currencies and crypto have a single source, so their
 | `platinum-ounce` | انس پلاتین | Platinum Global Ounce | ounce | `PLATINUM_OUNCE` | `usd` | platforms | 1 |
 | `palladium-ounce` | انس پالادیوم | Palladium Global Ounce | ounce | `PALLADIUM_OUNCE` | `usd` | platforms | 1 |
 
-> **`copper-lme` is crawled hourly**, not every couple of minutes. That matters
-> for `prices/stats`, which drops sources older than `max_age_seconds` (default
-> `180`): with the default, the LME row is always stale and the pair comes back
-> with empty stats. Ask for a wider window —
+> **`copper-lme` is a live feed on an hourly cycle.** It always has a current
+> price in `platforms/latest` — its `crawled_at` is just up to an hour old by
+> design. The one place this bites is `prices/stats`, which excludes sources
+> older than `max_age_seconds` (default `180`), so with the default the pair
+> comes back with empty stats. Ask for a window that matches its cadence:
 > `?asset=copper-lme&max_age_seconds=3600`.
 
 ## Coins
@@ -156,6 +159,11 @@ The sources behind the deepest assets, as of the same live check:
 | `copper` | platforms | charisma, gerami, meschi, zarpay |
 | `gold-ounce` / `silver-ounce` | platforms | rahavard, talair, tgju, tradingview |
 | `usdt` | platforms | nobitex, talair, tgju |
+
+Everything else is single-source and comes from **`tgju`** — every currency in
+the ارز آزاد table and every crypto in Toman — with four exceptions:
+`try` adds `talair`, and `omr`, `oil-brent` and the `usdt`-based `btc`/`eth`
+come from `talair` alone; `copper-lme` comes from `lme`.
 
 Filter to one of them with `?source=`, or read `source.slug` on each item.
 
